@@ -47,7 +47,7 @@
     
     // 파이어베이스 모듈 로드
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
     import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
     const { useState, useEffect, useRef } = React;
@@ -262,6 +262,19 @@
       // ==========================================
       useEffect(() => {
         if (!auth) return;
+        
+        // 사파리 PWA(홈화면) 등에서 signInWithRedirect 이후 돌아왔을 때 결과 처리
+        getRedirectResult(auth).then((result) => {
+          if (result && result.user) {
+            setUser(result.user);
+            setIsLoggedIn(true);
+            setIsLoading(false);
+          }
+        }).catch((err) => {
+          console.error("Redirect Error:", err);
+          setIsLoading(false);
+        });
+
         const unsubscribe = onAuthStateChanged(auth, (u) => {
           if (u) {
             setUser(u);
@@ -276,17 +289,26 @@
         if (!auth) return;
         setIsLoading(true);
         try {
-          // 모바일 사파리 PWA의 보안 정책으로 인해 팝업 차단 문제가 발생하므로
-          // 플랫폼에서 제공하는 안전한 토큰을 사용하여 즉시 우회 로그인합니다.
+          const provider = new GoogleAuthProvider();
+          // 모바일 기기이거나 홈 화면(PWA)으로 실행 중인지 체크
+          const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+          const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+          if (isMobile || isPWA) {
+            // 모바일/PWA에서는 팝업이 차단되므로 페이지 이동(Redirect) 방식으로 로그인
+            await signInWithRedirect(auth, provider);
+          } else {
+            // PC 환경 등에서는 팝업 방식 사용
+            await signInWithPopup(auth, provider);
+          }
+        } catch (err) {
+          console.error("Login error:", err);
+          // 구글 로그인이 불가능한 테스트 환경(미리보기 등)일 경우 임시 로그인 처리
           if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
             await signInWithCustomToken(auth, __initial_auth_token);
           } else {
             await signInAnonymously(auth);
           }
-        } catch (err) {
-          console.error("Login error:", err);
-          setIsLoading(false);
-          setAlertMessage("로그인 중 오류가 발생했습니다.");
         }
       };
 
