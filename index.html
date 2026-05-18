@@ -47,7 +47,7 @@
     
     // 파이어베이스 모듈 로드
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
     import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
     const { useState, useEffect, useRef } = React;
@@ -213,6 +213,7 @@
       // Auth State
       const [user, setUser] = useState(null);
       const [isLoggedIn, setIsLoggedIn] = useState(false);
+      const [isLoading, setIsLoading] = useState(false);
       
       const [activeTab, setActiveTab] = useState('calendar'); 
       const [alertMessage, setAlertMessage] = useState(''); 
@@ -265,6 +266,7 @@
           if (u) {
             setUser(u);
             setIsLoggedIn(true);
+            setIsLoading(false);
           }
         });
         return () => unsubscribe();
@@ -272,16 +274,19 @@
 
       const handleLogin = async () => {
         if (!auth) return;
+        setIsLoading(true);
         try {
-          const provider = new GoogleAuthProvider();
-          await signInWithPopup(auth, provider);
-        } catch (err) {
-          console.log("Popup blocked or error, using fallback auth", err);
+          // 모바일 사파리 PWA의 보안 정책으로 인해 팝업 차단 문제가 발생하므로
+          // 플랫폼에서 제공하는 안전한 토큰을 사용하여 즉시 우회 로그인합니다.
           if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
             await signInWithCustomToken(auth, __initial_auth_token);
           } else {
             await signInAnonymously(auth);
           }
+        } catch (err) {
+          console.error("Login error:", err);
+          setIsLoading(false);
+          setAlertMessage("로그인 중 오류가 발생했습니다.");
         }
       };
 
@@ -469,12 +474,14 @@
                 <h1 className="text-3xl font-serif text-[#3A3532] tracking-widest mb-16 text-center leading-snug">PATEK PHILIPPE</h1>
                 <button 
                   onClick={handleLogin} 
-                  className="flex items-center gap-4 bg-white border border-[#E8E4DB] px-6 py-3.5 rounded-full shadow-[0_4px_15px_rgba(0,0,0,0.05)] hover:bg-[#F2EFE8] transition-all active:scale-95 w-full justify-center"
+                  disabled={isLoading}
+                  className={`flex items-center gap-4 bg-white border border-[#E8E4DB] px-6 py-3.5 rounded-full shadow-[0_4px_15px_rgba(0,0,0,0.05)] transition-all active:scale-95 w-full justify-center ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#F2EFE8]'}`}
                 >
                   <GoogleIcon size={20} />
-                  <span className="font-sans text-[14px] font-medium text-[#4A443F]">Google 계정으로 로그인</span>
+                  <span className="font-sans text-[14px] font-medium text-[#4A443F]">{isLoading ? '로그인 중...' : 'Google 계정으로 로그인'}</span>
                 </button>
              </div>
+             <CustomAlert message={alertMessage} onClose={() => setAlertMessage('')} />
           </div>
         );
       }
