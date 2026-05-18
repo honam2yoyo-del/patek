@@ -91,10 +91,13 @@
     );
 
     // --- Firebase 및 전역 변수 설정 ---
-    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-    const app = Object.keys(firebaseConfig).length > 0 ? initializeApp(firebaseConfig) : null;
-    const auth = app ? getAuth(app) : null;
-    const db = app ? getFirestore(app) : null;
+    const firebaseConfig = typeof __firebase_config !== 'undefined' && __firebase_config ? JSON.parse(__firebase_config) : null;
+    let app = null, auth = null, db = null;
+    if (firebaseConfig && Object.keys(firebaseConfig).length > 0) {
+       app = initializeApp(firebaseConfig);
+       auth = getAuth(app);
+       db = getFirestore(app);
+    }
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-work-app';
 
     // 헬퍼 함수
@@ -222,10 +225,19 @@
       
       // --- DB Data States ---
       const [events, setEvents] = useState([]);
-      const [customers, setCustomers] = useState([]);
-      const [inquiries, setInquiries] = useState([]);
-      const [tasks, setTasks] = useState([]);
-      const [albums, setAlbums] = useState([]);
+      const [customers, setCustomers] = useState([
+        { id: '1', name: '홍길동', birthDate: '1994.02.03', phone: '010-1234-1234', job: '의사', notes: '', purchases: [{ id: 'p1', date: '2026-05-18', ref: '5205G-001', qty: 1, amount: '30000000', note: '' }] }
+      ]);
+      const [inquiries, setInquiries] = useState([
+        { id: 'i1', date: '2026-03-28', customerName: '홍길동', customerPhone: '010-1234-1234', type: '기존', birthDate: '1994.02.03', job: '의사', notes: '', memo: '', items: [{ id: 'item1', date: '2025-05-18', ref: '5726/1A-001', proposedDate: '2026-04-08', note: '5905R 구매 희망', isCompleted: false }] }
+      ]);
+      const [tasks, setTasks] = useState([
+        { id: 't1', date: '2025-05-31', category: '행사/일정', title: '6/20 CRM 행사 예정', isCompleted: false, isStarred: true, memo: '' }
+      ]);
+      const [albums, setAlbums] = useState([
+        { id: 'a1', imageUrl: 'https://images.unsplash.com/photo-1523170335258-f5ed11844a49?q=80&w=300&auto=format&fit=crop', category: '착용샷', title: '골드 드레스워치', ref: '5205G', memo: '' },
+        { id: 'a2', imageUrl: 'https://images.unsplash.com/photo-1522312346375-d1a52e2b99b3?q=80&w=300&auto=format&fit=crop', category: '실물', title: '실버 케이스', ref: '5905R', memo: '' }
+      ]);
 
       // --- Local Filter/Sort States ---
       const [currentDate, setCurrentDate] = useState(new Date());
@@ -286,28 +298,45 @@
       }, []);
 
       const handleLogin = async () => {
-        if (!auth) return;
         setIsLoading(true);
+
+        // Firebase 설정이 없는 미리보기/캔버스 환경일 경우 강력하게 로컬 로그인으로 우회
+        if (!auth) {
+          setTimeout(() => {
+            setUser({ uid: 'local-test-user' });
+            setIsLoggedIn(true);
+            setIsLoading(false);
+            setAlertMessage("테스트 환경: 데이터가 기기에 임시 저장됩니다.\n(실제 배포 시 구글 로그인이 정상 작동합니다.)");
+          }, 800);
+          return;
+        }
+
         try {
           const provider = new GoogleAuthProvider();
-          // 모바일 기기이거나 홈 화면(PWA)으로 실행 중인지 체크
+          // 사파리나 모바일 PWA에서는 Redirect 방식 사용
           const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
           const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
           if (isMobile || isPWA) {
-            // 모바일/PWA에서는 팝업이 차단되므로 페이지 이동(Redirect) 방식으로 로그인
             await signInWithRedirect(auth, provider);
           } else {
-            // PC 환경 등에서는 팝업 방식 사용
             await signInWithPopup(auth, provider);
           }
         } catch (err) {
-          console.error("Login error:", err);
-          // 구글 로그인이 불가능한 테스트 환경(미리보기 등)일 경우 임시 로그인 처리
-          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-            await signInWithCustomToken(auth, __initial_auth_token);
-          } else {
-            await signInAnonymously(auth);
+          console.error("Google Login Error:", err);
+          // 팝업이 차단되었거나 승인되지 않은 도메인일 경우 우회 로그인
+          try {
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+              await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+              await signInAnonymously(auth);
+            }
+          } catch (fallbackErr) {
+            // 최후의 수단: 강제 접속 처리
+            setUser({ uid: 'local-test-user' });
+            setIsLoggedIn(true);
+            setIsLoading(false);
+            setAlertMessage("미리보기 환경: 임시 계정으로 접속되었습니다.");
           }
         }
       };
@@ -316,7 +345,7 @@
       // Firestore 데이터 실시간 연동 (Hook)
       // ==========================================
       useEffect(() => {
-        if (!user || !isLoggedIn || !db) return;
+        if (!user || !isLoggedIn || !db || user.uid === 'local-test-user') return;
         const uId = user.uid;
 
         const unsubEvents = onSnapshot(collection(db, 'artifacts', appId, 'users', uId, 'events'), snap => {
@@ -355,7 +384,7 @@
       };
 
       // ==========================================
-      // 앨범 로직 (Firestore 대응)
+      // 앨범 로직 (하이브리드: 로컬/DB)
       // ==========================================
       const handleFileChange = (e) => {
         const files = Array.from(e.target.files);
@@ -368,8 +397,6 @@
       };
 
       const handleSaveAlbum = async () => {
-        if (!user || !db) return;
-        
         if (albumForm.id) { // 편집 모드일 때
            if (!albumForm.title.trim()) { setAlertMessage("사진명(제목)을 입력해주세요."); return; }
            
@@ -378,16 +405,17 @@
               newImageUrl = await compressImage(albumForm.files[0]);
            }
            
-           await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'albums', albumForm.id), {
-              category: albumForm.category === '전체' ? '기타' : albumForm.category,
-              title: albumForm.title,
-              ref: albumForm.ref,
-              memo: albumForm.memo,
-              imageUrl: newImageUrl
-           });
-           setIsAlbumModalOpen(false);
-           setAlbumForm(null);
-           setAlertMessage("사진이 수정되었습니다.");
+           if (!db || user.uid === 'local-test-user') {
+             setAlbums(prev => prev.map(a => a.id === albumForm.id ? {
+                ...a, category: albumForm.category, title: albumForm.title, ref: albumForm.ref, memo: albumForm.memo, imageUrl: newImageUrl
+             } : a));
+           } else {
+             await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'albums', albumForm.id), {
+                category: albumForm.category === '전체' ? '기타' : albumForm.category,
+                title: albumForm.title, ref: albumForm.ref, memo: albumForm.memo, imageUrl: newImageUrl
+             });
+           }
+           setIsAlbumModalOpen(false); setAlbumForm(null); setAlertMessage("사진이 수정되었습니다.");
            return;
         }
 
@@ -398,20 +426,26 @@
         setAlertMessage("사진을 저장 중입니다...\n잠시만 기다려주세요.");
         
         try {
+          const newAlbumsLocal = [];
           const promises = albumForm.files.map(async (file) => {
             const base64Url = await compressImage(file);
-            return addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'albums'), {
+            const payload = {
               imageUrl: base64Url,
               category: albumForm.category === '전체' ? '기타' : albumForm.category,
-              title: albumForm.title,
-              ref: albumForm.ref,
-              memo: albumForm.memo,
+              title: albumForm.title, ref: albumForm.ref, memo: albumForm.memo,
               date: new Date().toISOString().split('T')[0]
-            });
+            };
+            if (!db || user.uid === 'local-test-user') {
+               payload.id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+               newAlbumsLocal.push(payload);
+            } else {
+               await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'albums'), payload);
+            }
           });
           await Promise.all(promises);
-          setIsAlbumModalOpen(false);
-          setAlbumForm(null);
+          if (!db || user.uid === 'local-test-user') setAlbums(prev => [...newAlbumsLocal, ...prev]);
+          
+          setIsAlbumModalOpen(false); setAlbumForm(null);
           setAlertMessage(`${albumForm.files.length}장의 사진이 성공적으로 저장되었습니다.`);
         } catch(e) {
           setAlertMessage("저장 중 오류가 발생했습니다.");
@@ -456,30 +490,34 @@
            isOpen: true,
            message: "이 사진을 삭제하시겠습니까?",
            onConfirm: async () => {
-              await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'albums', albumForm.id));
-              setIsAlbumModalOpen(false);
-              setAlbumForm(null);
+              if (!db || user.uid === 'local-test-user') setAlbums(prev => prev.filter(a => a.id !== albumForm.id));
+              else await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'albums', albumForm.id));
+              
+              setIsAlbumModalOpen(false); setAlbumForm(null);
               setConfirmDialog({ isOpen: false, message: '', onConfirm: null });
            }
         });
       };
 
       // ==========================================
-      // 달력 로직 (Firestore 대응)
+      // 달력 로직 (하이브리드: 로컬/DB)
       // ==========================================
       const handleSaveEvent = async () => {
         if (!formData.title.trim() || !formData.date) { setAlertMessage("일정 제목과 날짜를 확인해주세요."); return; }
         const eventData = { 
            date: formData.date, 
            endDate: isMultiDay && formData.endDate && formData.endDate >= formData.date ? formData.endDate : null, 
-           title: formData.title, 
-           content: formData.content, 
-           categoryId: formData.categoryId,
+           title: formData.title, content: formData.content, categoryId: formData.categoryId,
            updatedAt: new Date().toISOString() 
         };
         
-        if (formData.id) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'events', formData.id), eventData);
-        else await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'events'), eventData);
+        if (!db || user.uid === 'local-test-user') {
+           if (formData.id) setEvents(prev => prev.map(e => e.id === formData.id ? { ...eventData, id: formData.id } : e));
+           else setEvents(prev => [...prev, { ...eventData, id: Date.now().toString() }]);
+        } else {
+           if (formData.id) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'events', formData.id), eventData);
+           else await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'events'), eventData);
+        }
         
         setIsAddModalOpen(false); setIsMultiDay(false);
         setFormData({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'yellow' });
@@ -702,7 +740,7 @@
               {filteredAndSorted.length === 0 && <div className="flex justify-center items-center h-32 text-[#A8A29D] font-serif">검색된 고객이 없습니다.</div>}
             </div>
 
-            <button onClick={() => { setCustomerForm({ id: Date.now().toString(), name: '', birthDate: '', phone: '', job: '', notes: '', purchases: [] }); setIsCustomerModalOpen(true); }} className="absolute bottom-6 right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
+            <button onClick={() => { setCustomerForm({ id: '', name: '', birthDate: '', phone: '', job: '', notes: '', purchases: [] }); setIsCustomerModalOpen(true); }} className="absolute bottom-6 right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
               <Plus size={26} strokeWidth={1.2} />
             </button>
           </div>
@@ -770,7 +808,7 @@
               {filteredInquiries.length === 0 && <div className="flex justify-center items-center h-32 text-[#A8A29D] font-serif">검색된 정보가 없습니다.</div>}
             </div>
 
-            <button onClick={() => { setInquiryForm({ id: Date.now().toString(), date: new Date().toISOString().split('T')[0], type: '신규', customerName: '', birthDate: '', customerPhone: '', job: '', notes: '', memo: '', items: [] }); setIsInquiryModalOpen(true); }} className="absolute bottom-6 right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
+            <button onClick={() => { setInquiryForm({ id: '', date: new Date().toISOString().split('T')[0], type: '신규', customerName: '', birthDate: '', customerPhone: '', job: '', notes: '', memo: '', items: [] }); setIsInquiryModalOpen(true); }} className="absolute bottom-6 right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
               <Plus size={26} strokeWidth={1.2} />
             </button>
           </div>
@@ -899,12 +937,14 @@
         const toggleTaskCompletion = async (id) => { 
            const targetTask = tasks.find(t => t.id === id);
            if (!targetTask) return;
-           await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'tasks', id), { isCompleted: !targetTask.isCompleted });
+           if (!db || user.uid === 'local-test-user') setTasks(prev => prev.map(t => t.id === id ? { ...t, isCompleted: !t.isCompleted } : t));
+           else await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'tasks', id), { isCompleted: !targetTask.isCompleted });
         };
         const toggleTaskStar = async (id) => { 
            const targetTask = tasks.find(t => t.id === id);
            if (!targetTask) return;
-           await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'tasks', id), { isStarred: !targetTask.isStarred });
+           if (!db || user.uid === 'local-test-user') setTasks(prev => prev.map(t => t.id === id ? { ...t, isStarred: !t.isStarred } : t));
+           else await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'tasks', id), { isStarred: !targetTask.isStarred });
         };
 
         return (
@@ -973,10 +1013,9 @@
       };
 
       // ==========================================
-      // 공통 모달 렌더링 함수들
+      // 공통 모달 렌더링 함수들 (고객, 문의사항, 앨범 등)
       // ==========================================
 
-      // --- 달력 모달 ---
       const renderAddModal = () => {
         if (!isAddModalOpen) return null;
         return (
@@ -1031,7 +1070,9 @@
           setIsViewModalOpen(false); setIsAddModalOpen(true);
         };
         const handleDeleteEvent = (id) => {
-          setEvents(events.filter(e => e.id !== id)); setIsViewModalOpen(false);
+          if (!db || user.uid === 'local-test-user') setEvents(prev => prev.filter(e => e.id !== id));
+          else deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'events', id));
+          setIsViewModalOpen(false);
         };
         return (
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
@@ -1056,7 +1097,6 @@
         );
       };
 
-      // --- 고객 모달 ---
       const renderCustomerModal = () => {
         if (!isCustomerModalOpen || !customerForm) return null;
 
@@ -1064,10 +1104,16 @@
           if (!customerForm.name.trim()) { setAlertMessage("고객명을 입력해주세요."); return; }
           const payload = { ...customerForm };
           const targetId = payload.id;
-          delete payload.id; // DB에는 불필요하므로 제외
+          delete payload.id; 
           
-          if (targetId) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'customers', targetId), payload);
-          else await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'customers'), payload);
+          if (!db || user.uid === 'local-test-user') {
+             payload.id = targetId || Date.now().toString();
+             if (targetId) setCustomers(prev => prev.map(c => c.id === targetId ? payload : c));
+             else setCustomers(prev => [payload, ...prev]);
+          } else {
+             if (targetId) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'customers', targetId), payload);
+             else await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'customers'), payload);
+          }
           
           setIsCustomerModalOpen(false); setCustomerForm(null);
         };
@@ -1185,7 +1231,6 @@
         );
       };
 
-      // --- 문의사항 모달 ---
       const renderInquiryModal = () => {
         if (!isInquiryModalOpen || !inquiryForm) return null;
 
@@ -1194,8 +1239,16 @@
           const payload = { ...inquiryForm };
           const targetId = payload.id;
           delete payload.id; 
-          if (targetId) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'inquiries', targetId), payload);
-          else await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'inquiries'), payload);
+          
+          if (!db || user.uid === 'local-test-user') {
+             payload.id = targetId || Date.now().toString();
+             if (targetId) setInquiries(prev => prev.map(i => i.id === targetId ? payload : i));
+             else setInquiries(prev => [payload, ...prev]);
+          } else {
+             if (targetId) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'inquiries', targetId), payload);
+             else await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'inquiries'), payload);
+          }
+          
           setIsInquiryModalOpen(false); setInquiryForm(null);
         };
 
@@ -1320,7 +1373,6 @@
         );
       };
 
-      // --- 앨범 모달 ---
       const renderAlbumModal = () => {
         if (!isAlbumModalOpen || !albumForm) return null;
 
@@ -1329,9 +1381,10 @@
              isOpen: true,
              message: "이 사진을\n삭제하시겠습니까?",
              onConfirm: async () => {
-                await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'albums', albumForm.id));
-                setIsAlbumModalOpen(false);
-                setAlbumForm(null);
+                if (!db || user.uid === 'local-test-user') setAlbums(prev => prev.filter(a => a.id !== albumForm.id));
+                else await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'albums', albumForm.id));
+                
+                setIsAlbumModalOpen(false); setAlbumForm(null);
                 setConfirmDialog({ isOpen: false, message: '', onConfirm: null });
              }
           });
@@ -1399,7 +1452,6 @@
         );
       };
 
-      // --- 업무 모달 ---
       const renderTaskModal = () => {
         if (!isTaskModalOpen || !taskForm) return null;
         const isExisting = tasks.some(t => t.id === taskForm.id);
@@ -1410,16 +1462,20 @@
           const targetId = payload.id;
           delete payload.id; 
           
-          if (isExisting && targetId) {
-            await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'tasks', targetId), payload);
-          } else { 
-            await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'tasks'), { ...payload, isCompleted: false, isStarred: false });
+          if (!db || user.uid === 'local-test-user') {
+             payload.id = targetId || Date.now().toString();
+             if (targetId) setTasks(prev => prev.map(t => t.id === targetId ? payload : t));
+             else setTasks(prev => [{...payload, isCompleted: false, isStarred: false}, ...prev]);
+          } else {
+             if (isExisting && targetId) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'tasks', targetId), payload);
+             else await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'tasks'), { ...payload, isCompleted: false, isStarred: false });
           }
           setIsTaskModalOpen(false); setTaskForm(null);
         };
 
         const handleDeleteTask = async () => { 
-           await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'tasks', taskForm.id));
+           if (!db || user.uid === 'local-test-user') setTasks(prev => prev.filter(t => t.id !== taskForm.id));
+           else await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'tasks', taskForm.id));
            setIsTaskModalOpen(false); setTaskForm(null); 
         };
 
