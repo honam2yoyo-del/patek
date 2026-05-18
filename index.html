@@ -47,7 +47,7 @@
     
     // 파이어베이스 모듈 로드
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+    import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
     import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
     const { useState, useEffect, useRef } = React;
@@ -90,14 +90,35 @@
       </svg>
     );
 
-    // --- Firebase 및 전역 변수 설정 ---
-    const firebaseConfig = typeof __firebase_config !== 'undefined' && __firebase_config ? JSON.parse(__firebase_config) : null;
+    // ==========================================
+    // Firebase 설정
+    // ==========================================
+    // 실제 배포 시 본인의 Firebase 프로젝트 Config로 변경해야 작동합니다.
+    const YOUR_FIREBASE_CONFIG = {
+      // apiKey: "YOUR_API_KEY",
+      // authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      // projectId: "YOUR_PROJECT_ID",
+      // storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      // messagingSenderId: "YOUR_SENDER_ID",
+      // appId: "YOUR_APP_ID"
+    };
+
+    // 캔버스 환경과 로컬 환경을 모두 지원하는 Config 로드
+    const firebaseConfig = typeof __firebase_config !== 'undefined' && __firebase_config 
+        ? JSON.parse(__firebase_config) 
+        : YOUR_FIREBASE_CONFIG;
+        
     let app = null, auth = null, db = null;
-    if (firebaseConfig && Object.keys(firebaseConfig).length > 0) {
-       app = initializeApp(firebaseConfig);
-       auth = getAuth(app);
-       db = getFirestore(app);
+    try {
+      if (firebaseConfig && Object.keys(firebaseConfig).length > 0) {
+         app = initializeApp(firebaseConfig);
+         auth = getAuth(app);
+         db = getFirestore(app);
+      }
+    } catch(e) {
+      console.warn("Firebase 초기화 안됨. 배포 시 설정을 추가하세요.", e);
     }
+    
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-work-app';
 
     // 헬퍼 함수
@@ -223,21 +244,12 @@
       const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null });
       const fileInputRef = useRef(null);
       
-      // --- DB Data States ---
+      // --- DB Data States (기본값 빈 배열, 구글 로그인 시 진짜 데이터만 불러옴) ---
       const [events, setEvents] = useState([]);
-      const [customers, setCustomers] = useState([
-        { id: '1', name: '홍길동', birthDate: '1994.02.03', phone: '010-1234-1234', job: '의사', notes: '', purchases: [{ id: 'p1', date: '2026-05-18', ref: '5205G-001', qty: 1, amount: '30000000', note: '' }] }
-      ]);
-      const [inquiries, setInquiries] = useState([
-        { id: 'i1', date: '2026-03-28', customerName: '홍길동', customerPhone: '010-1234-1234', type: '기존', birthDate: '1994.02.03', job: '의사', notes: '', memo: '', items: [{ id: 'item1', date: '2025-05-18', ref: '5726/1A-001', proposedDate: '2026-04-08', note: '5905R 구매 희망', isCompleted: false }] }
-      ]);
-      const [tasks, setTasks] = useState([
-        { id: 't1', date: '2025-05-31', category: '행사/일정', title: '6/20 CRM 행사 예정', isCompleted: false, isStarred: true, memo: '' }
-      ]);
-      const [albums, setAlbums] = useState([
-        { id: 'a1', imageUrl: 'https://images.unsplash.com/photo-1523170335258-f5ed11844a49?q=80&w=300&auto=format&fit=crop', category: '착용샷', title: '골드 드레스워치', ref: '5205G', memo: '' },
-        { id: 'a2', imageUrl: 'https://images.unsplash.com/photo-1522312346375-d1a52e2b99b3?q=80&w=300&auto=format&fit=crop', category: '실물', title: '실버 케이스', ref: '5905R', memo: '' }
-      ]);
+      const [customers, setCustomers] = useState([]);
+      const [inquiries, setInquiries] = useState([]);
+      const [tasks, setTasks] = useState([]);
+      const [albums, setAlbums] = useState([]);
 
       // --- Local Filter/Sort States ---
       const [currentDate, setCurrentDate] = useState(new Date());
@@ -274,23 +286,15 @@
       // ==========================================
       useEffect(() => {
         if (!auth) return;
-        
-        // 사파리 PWA(홈화면) 등에서 signInWithRedirect 이후 돌아왔을 때 결과 처리
-        getRedirectResult(auth).then((result) => {
-          if (result && result.user) {
-            setUser(result.user);
-            setIsLoggedIn(true);
-            setIsLoading(false);
-          }
-        }).catch((err) => {
-          console.error("Redirect Error:", err);
-          setIsLoading(false);
-        });
 
         const unsubscribe = onAuthStateChanged(auth, (u) => {
           if (u) {
             setUser(u);
             setIsLoggedIn(true);
+            setIsLoading(false);
+          } else {
+            setUser(null);
+            setIsLoggedIn(false);
             setIsLoading(false);
           }
         });
@@ -298,45 +302,25 @@
       }, []);
 
       const handleLogin = async () => {
-        setIsLoading(true);
-
-        // Firebase 설정이 없는 미리보기/캔버스 환경일 경우 강력하게 로컬 로그인으로 우회
         if (!auth) {
-          setTimeout(() => {
-            setUser({ uid: 'local-test-user' });
-            setIsLoggedIn(true);
-            setIsLoading(false);
-            setAlertMessage("테스트 환경: 데이터가 기기에 임시 저장됩니다.\n(실제 배포 시 구글 로그인이 정상 작동합니다.)");
-          }, 800);
-          return;
+           setAlertMessage("Firebase DB 설정이 연결되지 않았습니다.\n코드를 실제 서버에 업로드하여 Firebase Config를 입력해주세요.");
+           return;
         }
-
+        
+        setIsLoading(true);
         try {
           const provider = new GoogleAuthProvider();
-          // 사파리나 모바일 PWA에서는 Redirect 방식 사용
-          const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-          const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-
-          if (isMobile || isPWA) {
-            await signInWithRedirect(auth, provider);
-          } else {
-            await signInWithPopup(auth, provider);
-          }
+          // 정통 구글 팝업 로그인 강제 실행
+          await signInWithPopup(auth, provider);
         } catch (err) {
           console.error("Google Login Error:", err);
-          // 팝업이 차단되었거나 승인되지 않은 도메인일 경우 우회 로그인
-          try {
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-              await signInWithCustomToken(auth, __initial_auth_token);
-            } else {
-              await signInAnonymously(auth);
-            }
-          } catch (fallbackErr) {
-            // 최후의 수단: 강제 접속 처리
-            setUser({ uid: 'local-test-user' });
-            setIsLoggedIn(true);
-            setIsLoading(false);
-            setAlertMessage("미리보기 환경: 임시 계정으로 접속되었습니다.");
+          setIsLoading(false);
+          
+          // 팝업 차단 등에 의한 에러 시 메시지 출력
+          if (err.code === 'auth/popup-blocked') {
+             setAlertMessage("팝업 창이 차단되었습니다.\n브라우저 설정에서 팝업 차단을 해제해주세요.");
+          } else {
+             setAlertMessage("로그인 중 오류가 발생했습니다.\n" + err.message);
           }
         }
       };
@@ -345,7 +329,7 @@
       // Firestore 데이터 실시간 연동 (Hook)
       // ==========================================
       useEffect(() => {
-        if (!user || !isLoggedIn || !db || user.uid === 'local-test-user') return;
+        if (!user || !isLoggedIn || !db) return;
         const uId = user.uid;
 
         const unsubEvents = onSnapshot(collection(db, 'artifacts', appId, 'users', uId, 'events'), snap => {
@@ -384,7 +368,7 @@
       };
 
       // ==========================================
-      // 앨범 로직 (하이브리드: 로컬/DB)
+      // 앨범 로직
       // ==========================================
       const handleFileChange = (e) => {
         const files = Array.from(e.target.files);
@@ -397,6 +381,8 @@
       };
 
       const handleSaveAlbum = async () => {
+        if (!user || !db) { setAlertMessage("로그인 후 이용 가능합니다."); return; }
+        
         if (albumForm.id) { // 편집 모드일 때
            if (!albumForm.title.trim()) { setAlertMessage("사진명(제목)을 입력해주세요."); return; }
            
@@ -405,16 +391,11 @@
               newImageUrl = await compressImage(albumForm.files[0]);
            }
            
-           if (!db || user.uid === 'local-test-user') {
-             setAlbums(prev => prev.map(a => a.id === albumForm.id ? {
-                ...a, category: albumForm.category, title: albumForm.title, ref: albumForm.ref, memo: albumForm.memo, imageUrl: newImageUrl
-             } : a));
-           } else {
-             await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'albums', albumForm.id), {
-                category: albumForm.category === '전체' ? '기타' : albumForm.category,
-                title: albumForm.title, ref: albumForm.ref, memo: albumForm.memo, imageUrl: newImageUrl
-             });
-           }
+           await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'albums', albumForm.id), {
+              category: albumForm.category === '전체' ? '기타' : albumForm.category,
+              title: albumForm.title, ref: albumForm.ref, memo: albumForm.memo, imageUrl: newImageUrl
+           });
+           
            setIsAlbumModalOpen(false); setAlbumForm(null); setAlertMessage("사진이 수정되었습니다.");
            return;
         }
@@ -426,7 +407,6 @@
         setAlertMessage("사진을 저장 중입니다...\n잠시만 기다려주세요.");
         
         try {
-          const newAlbumsLocal = [];
           const promises = albumForm.files.map(async (file) => {
             const base64Url = await compressImage(file);
             const payload = {
@@ -435,15 +415,9 @@
               title: albumForm.title, ref: albumForm.ref, memo: albumForm.memo,
               date: new Date().toISOString().split('T')[0]
             };
-            if (!db || user.uid === 'local-test-user') {
-               payload.id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
-               newAlbumsLocal.push(payload);
-            } else {
-               await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'albums'), payload);
-            }
+            await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'albums'), payload);
           });
           await Promise.all(promises);
-          if (!db || user.uid === 'local-test-user') setAlbums(prev => [...newAlbumsLocal, ...prev]);
           
           setIsAlbumModalOpen(false); setAlbumForm(null);
           setAlertMessage(`${albumForm.files.length}장의 사진이 성공적으로 저장되었습니다.`);
@@ -490,9 +464,9 @@
            isOpen: true,
            message: "이 사진을 삭제하시겠습니까?",
            onConfirm: async () => {
-              if (!db || user.uid === 'local-test-user') setAlbums(prev => prev.filter(a => a.id !== albumForm.id));
-              else await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'albums', albumForm.id));
-              
+              if (user && db) {
+                 await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'albums', albumForm.id));
+              }
               setIsAlbumModalOpen(false); setAlbumForm(null);
               setConfirmDialog({ isOpen: false, message: '', onConfirm: null });
            }
@@ -500,10 +474,12 @@
       };
 
       // ==========================================
-      // 달력 로직 (하이브리드: 로컬/DB)
+      // 달력 로직
       // ==========================================
       const handleSaveEvent = async () => {
         if (!formData.title.trim() || !formData.date) { setAlertMessage("일정 제목과 날짜를 확인해주세요."); return; }
+        if (!user || !db) return;
+
         const eventData = { 
            date: formData.date, 
            endDate: isMultiDay && formData.endDate && formData.endDate >= formData.date ? formData.endDate : null, 
@@ -511,13 +487,8 @@
            updatedAt: new Date().toISOString() 
         };
         
-        if (!db || user.uid === 'local-test-user') {
-           if (formData.id) setEvents(prev => prev.map(e => e.id === formData.id ? { ...eventData, id: formData.id } : e));
-           else setEvents(prev => [...prev, { ...eventData, id: Date.now().toString() }]);
-        } else {
-           if (formData.id) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'events', formData.id), eventData);
-           else await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'events'), eventData);
-        }
+        if (formData.id) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'events', formData.id), eventData);
+        else await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'events'), eventData);
         
         setIsAddModalOpen(false); setIsMultiDay(false);
         setFormData({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'yellow' });
@@ -538,7 +509,7 @@
                   className={`flex items-center gap-4 bg-white border border-[#E8E4DB] px-6 py-3.5 rounded-full shadow-[0_4px_15px_rgba(0,0,0,0.05)] transition-all active:scale-95 w-full justify-center ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#F2EFE8]'}`}
                 >
                   <GoogleIcon size={20} />
-                  <span className="font-sans text-[14px] font-medium text-[#4A443F]">{isLoading ? '로그인 중...' : 'Google 계정으로 로그인'}</span>
+                  <span className="font-sans text-[14px] font-medium text-[#4A443F]">{isLoading ? '로그인 중...' : 'Google 계정으로 시작'}</span>
                 </button>
              </div>
              <CustomAlert message={alertMessage} onClose={() => setAlertMessage('')} />
