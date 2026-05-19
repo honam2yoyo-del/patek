@@ -47,7 +47,7 @@
     
     // 파이어베이스 모듈 로드
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-    import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
     import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
     const { useState, useEffect, useRef } = React;
@@ -91,16 +91,17 @@
     );
 
     // ==========================================
-    // Firebase 설정
+    // 🔴 Firebase 설정 (배포 시 필수 입력!) 🔴
     // ==========================================
-    // 실제 배포 시 본인의 Firebase 프로젝트 Config로 변경해야 작동합니다.
+    // 실제 서버(Firebase Hosting 등)에 업로드해서 사용하시려면
+    // 아래 빈칸에 본인의 Firebase 프로젝트 설정값을 채워넣으셔야 정상 로그인/저장이 작동합니다.
     const YOUR_FIREBASE_CONFIG = {
-      // apiKey: "YOUR_API_KEY",
-      // authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      // projectId: "YOUR_PROJECT_ID",
-      // storageBucket: "YOUR_PROJECT_ID.appspot.com",
-      // messagingSenderId: "YOUR_SENDER_ID",
-      // appId: "YOUR_APP_ID"
+      apiKey: "",
+      authDomain: "",
+      projectId: "",
+      storageBucket: "",
+      messagingSenderId: "",
+      appId: ""
     };
 
     // 캔버스 환경과 로컬 환경을 모두 지원하는 Config 로드
@@ -110,7 +111,7 @@
         
     let app = null, auth = null, db = null;
     try {
-      if (firebaseConfig && Object.keys(firebaseConfig).length > 0) {
+      if (firebaseConfig && firebaseConfig.apiKey) {
          app = initializeApp(firebaseConfig);
          auth = getAuth(app);
          db = getFirestore(app);
@@ -119,7 +120,9 @@
       console.warn("Firebase 초기화 안됨. 배포 시 설정을 추가하세요.", e);
     }
     
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-work-app';
+    const appId = (firebaseConfig && firebaseConfig.projectId) 
+        ? firebaseConfig.projectId 
+        : (typeof __app_id !== 'undefined' ? __app_id : 'default-work-app');
 
     // 헬퍼 함수
     const getNextDayStr = (dateStr) => {
@@ -282,7 +285,7 @@
       const [formData, setFormData] = useState({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'yellow' });
 
       // ==========================================
-      // Firebase Authentication 연동
+      // Firebase Authentication 연동 (정통 로그인)
       // ==========================================
       useEffect(() => {
         if (!auth) return;
@@ -303,7 +306,7 @@
 
       const handleLogin = async () => {
         if (!auth) {
-           setAlertMessage("Firebase DB 설정이 연결되지 않았습니다.\n코드를 실제 서버에 업로드하여 Firebase Config를 입력해주세요.");
+           setAlertMessage("Firebase DB 설정이 입력되지 않았습니다!\n소스 코드 상단의 'YOUR_FIREBASE_CONFIG' 부분에 본인의 Firebase 정보를 덮어씌워주세요.");
            return;
         }
         
@@ -316,9 +319,10 @@
           console.error("Google Login Error:", err);
           setIsLoading(false);
           
-          // 팝업 차단 등에 의한 에러 시 메시지 출력
           if (err.code === 'auth/popup-blocked') {
              setAlertMessage("팝업 창이 차단되었습니다.\n브라우저 설정에서 팝업 차단을 해제해주세요.");
+          } else if (err.code === 'auth/unauthorized-domain') {
+             setAlertMessage("⚠️ 구글 로그인 접속 차단됨 (auth/unauthorized-domain)\n\n현재 접속 중인 사이트의 주소가 Firebase에 등록되지 않아서 구글이 로그인을 막았습니다.\nFirebase 콘솔에서 이 도메인을 추가해주세요.");
           } else {
              setAlertMessage("로그인 중 오류가 발생했습니다.\n" + err.message);
           }
@@ -908,14 +912,12 @@
         const toggleTaskCompletion = async (id) => { 
            const targetTask = tasks.find(t => t.id === id);
            if (!targetTask) return;
-           if (!db || user.uid === 'local-test-user') setTasks(prev => prev.map(t => t.id === id ? { ...t, isCompleted: !t.isCompleted } : t));
-           else await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'tasks', id), { isCompleted: !targetTask.isCompleted });
+           await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'tasks', id), { isCompleted: !targetTask.isCompleted });
         };
         const toggleTaskStar = async (id) => { 
            const targetTask = tasks.find(t => t.id === id);
            if (!targetTask) return;
-           if (!db || user.uid === 'local-test-user') setTasks(prev => prev.map(t => t.id === id ? { ...t, isStarred: !t.isStarred } : t));
-           else await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'tasks', id), { isStarred: !targetTask.isStarred });
+           await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'tasks', id), { isStarred: !targetTask.isStarred });
         };
 
         return (
@@ -1040,9 +1042,8 @@
           setIsMultiDay(!!selectedEvent.endDate && selectedEvent.endDate !== selectedEvent.date);
           setIsViewModalOpen(false); setIsAddModalOpen(true);
         };
-        const handleDeleteEvent = (id) => {
-          if (!db || user.uid === 'local-test-user') setEvents(prev => prev.filter(e => e.id !== id));
-          else deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'events', id));
+        const handleDeleteEvent = async (id) => {
+          await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'events', id));
           setIsViewModalOpen(false);
         };
         return (
@@ -1068,6 +1069,7 @@
         );
       };
 
+      // --- 고객 모달 ---
       const renderCustomerModal = () => {
         if (!isCustomerModalOpen || !customerForm) return null;
 
@@ -1077,14 +1079,8 @@
           const targetId = payload.id;
           delete payload.id; 
           
-          if (!db || user.uid === 'local-test-user') {
-             payload.id = targetId || Date.now().toString();
-             if (targetId) setCustomers(prev => prev.map(c => c.id === targetId ? payload : c));
-             else setCustomers(prev => [payload, ...prev]);
-          } else {
-             if (targetId) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'customers', targetId), payload);
-             else await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'customers'), payload);
-          }
+          if (targetId) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'customers', targetId), payload);
+          else await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'customers'), payload);
           
           setIsCustomerModalOpen(false); setCustomerForm(null);
         };
@@ -1211,14 +1207,8 @@
           const targetId = payload.id;
           delete payload.id; 
           
-          if (!db || user.uid === 'local-test-user') {
-             payload.id = targetId || Date.now().toString();
-             if (targetId) setInquiries(prev => prev.map(i => i.id === targetId ? payload : i));
-             else setInquiries(prev => [payload, ...prev]);
-          } else {
-             if (targetId) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'inquiries', targetId), payload);
-             else await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'inquiries'), payload);
-          }
+          if (targetId) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'inquiries', targetId), payload);
+          else await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'inquiries'), payload);
           
           setIsInquiryModalOpen(false); setInquiryForm(null);
         };
@@ -1352,9 +1342,7 @@
              isOpen: true,
              message: "이 사진을\n삭제하시겠습니까?",
              onConfirm: async () => {
-                if (!db || user.uid === 'local-test-user') setAlbums(prev => prev.filter(a => a.id !== albumForm.id));
-                else await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'albums', albumForm.id));
-                
+                await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'albums', albumForm.id));
                 setIsAlbumModalOpen(false); setAlbumForm(null);
                 setConfirmDialog({ isOpen: false, message: '', onConfirm: null });
              }
@@ -1433,20 +1421,16 @@
           const targetId = payload.id;
           delete payload.id; 
           
-          if (!db || user.uid === 'local-test-user') {
-             payload.id = targetId || Date.now().toString();
-             if (targetId) setTasks(prev => prev.map(t => t.id === targetId ? payload : t));
-             else setTasks(prev => [{...payload, isCompleted: false, isStarred: false}, ...prev]);
-          } else {
-             if (isExisting && targetId) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'tasks', targetId), payload);
-             else await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'tasks'), { ...payload, isCompleted: false, isStarred: false });
+          if (isExisting && targetId) {
+            await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'tasks', targetId), payload);
+          } else { 
+            await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'tasks'), { ...payload, isCompleted: false, isStarred: false });
           }
           setIsTaskModalOpen(false); setTaskForm(null);
         };
 
         const handleDeleteTask = async () => { 
-           if (!db || user.uid === 'local-test-user') setTasks(prev => prev.filter(t => t.id !== taskForm.id));
-           else await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'tasks', taskForm.id));
+           await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'tasks', taskForm.id));
            setIsTaskModalOpen(false); setTaskForm(null); 
         };
 
