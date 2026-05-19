@@ -45,11 +45,12 @@
 <body>
   <div id="root"></div>
 
+  <!-- type="text/babel"을 통해 브라우저가 React 문법을 해석하게 합니다 -->
   <script type="text/babel" data-type="module">
     
-    // 파이어베이스 모듈 로드 (getApps, getApp 추가하여 중복 로드 충돌 방지)
-    import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+    // 파이어베이스 모듈 로드 (안정성이 검증된 필수 모듈만 로드하여 Crash 방지)
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+    import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
     import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
     const { useState, useEffect, useRef } = React;
@@ -93,9 +94,9 @@
     );
 
     // ==========================================
-    // 🔴 Firebase 설정 (고객님 데이터베이스 연결 완료) 🔴
+    // 🔴 Firebase 완벽 하드코딩 설정 (가계부 앱과 동일) 🔴
     // ==========================================
-    const YOUR_FIREBASE_CONFIG = {
+    const firebaseConfig = {
       apiKey: "AIzaSyBAGzTOYqnVFysfHvKKAw7KNX1QOnEXWmU",
       authDomain: "mymoneyapp-e6ef9.firebaseapp.com",
       projectId: "mymoneyapp-e6ef9",
@@ -103,30 +104,11 @@
       messagingSenderId: "461181649829",
       appId: "1:461181649829:web:ca70e6ed2ef0ed18a8de4c"
     };
-
-    const firebaseConfig = typeof __firebase_config !== 'undefined' && __firebase_config 
-        ? JSON.parse(__firebase_config) 
-        : YOUR_FIREBASE_CONFIG;
         
-    let app = null, auth = null, db = null;
-    try {
-      if (firebaseConfig && firebaseConfig.apiKey) {
-         // 중복 초기화 방지를 위해 기존 앱이 있는지 확인 (WSOD 에러 방지)
-         if (getApps().length === 0) {
-             app = initializeApp(firebaseConfig);
-         } else {
-             app = getApp();
-         }
-         auth = getAuth(app);
-         db = getFirestore(app);
-      }
-    } catch(e) {
-      console.warn("Firebase 초기화 안됨. 배포 시 설정을 추가하세요.", e);
-    }
-    
-    const appId = (firebaseConfig && firebaseConfig.projectId) 
-        ? firebaseConfig.projectId 
-        : (typeof __app_id !== 'undefined' ? __app_id : 'patek-philippe-app');
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const targetAppId = 'patek-philippe-app';
 
     // 헬퍼 함수
     const getNextDayStr = (dateStr) => {
@@ -135,19 +117,19 @@
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     };
     const formatBirthDate = (value) => {
-      const numbers = value.replace(/\D/g, ''); 
+      const numbers = String(value || '').replace(/\D/g, ''); 
       if (numbers.length <= 4) return numbers;
       if (numbers.length <= 6) return `${numbers.slice(0, 4)}.${numbers.slice(4)}`;
       return `${numbers.slice(0, 4)}.${numbers.slice(4, 6)}.${numbers.slice(6, 8)}`;
     };
     const formatPhoneNumber = (value) => {
-      const numbers = value.replace(/\D/g, ''); 
+      const numbers = String(value || '').replace(/\D/g, ''); 
       if (numbers.length <= 3) return numbers;
       if (numbers.length <= 7) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
       return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
     };
     const formatAmount = (value) => {
-      const numbers = String(value).replace(/\D/g, '');
+      const numbers = String(value || '').replace(/\D/g, '');
       if (!numbers) return '';
       return Number(numbers).toLocaleString('ko-KR');
     };
@@ -296,81 +278,67 @@
       // Firebase Authentication 연동
       // ==========================================
       useEffect(() => {
-        if (!auth) return;
-        
-        getRedirectResult(auth).then((result) => {
-          if (result && result.user) {
-            setUser(result.user);
-            setIsLoggedIn(true);
-            setIsLoading(false);
-          }
-        }).catch((err) => {
-          console.error("Redirect Error:", err);
-          setIsLoading(false);
-        });
-
         const unsubscribe = onAuthStateChanged(auth, (u) => {
           if (u) {
             setUser(u);
             setIsLoggedIn(true);
-            setIsLoading(false);
           } else {
             setUser(null);
             setIsLoggedIn(false);
-            setIsLoading(false);
           }
+          setIsLoading(false);
         });
         return () => unsubscribe();
       }, []);
 
-      const handleLogin = async () => {
-        if (!auth) {
-           setAlertMessage("Firebase DB 오류: 인증 정보를 확인할 수 없습니다.");
-           return;
-        }
-        
+      const handleLogin = () => {
         setIsLoading(true);
-        try {
-          const provider = new GoogleAuthProvider();
-          const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-          const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+        const provider = new GoogleAuthProvider();
+        
+        signInWithPopup(auth, provider).catch(error => {
+            console.error("로그인 에러:", error);
+            setIsLoading(false);
+            if (error.code === 'auth/unauthorized-domain') {
+                setAlertMessage("⚠️ 구글 로그인 접속 차단됨 (auth/unauthorized-domain)\n\n현재 접속 중인 사이트의 주소가 Firebase에 등록되지 않아서 구글이 로그인을 막았습니다.");
+            } else if (error.code === 'auth/popup-blocked') {
+                setAlertMessage("팝업 창이 차단되었습니다.\n브라우저 설정에서 팝업 차단을 해제해주세요.");
+            } else {
+                setAlertMessage("로그인 중 오류가 발생했습니다.\n에러: " + error.message);
+            }
+        });
+      };
 
-          if (isMobile || isPWA) {
-            await signInWithRedirect(auth, provider);
-          } else {
-            await signInWithPopup(auth, provider);
-          }
-        } catch (err) {
-          console.error("Google Login Error:", err);
-          
-          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-              await signInWithCustomToken(auth, __initial_auth_token);
-          } else {
-              await signInAnonymously(auth);
-          }
-        }
+      const handleLogout = () => {
+        setConfirmDialog({
+           isOpen: true,
+           message: "로그아웃 하시겠습니까?",
+           onConfirm: async () => {
+              await signOut(auth);
+              setConfirmDialog({ isOpen: false, message: '', onConfirm: null });
+           }
+        });
       };
 
       // ==========================================
       // Firestore 데이터 연동
       // ==========================================
       useEffect(() => {
-        if (!user || !isLoggedIn || !db) return;
+        if (!user || !isLoggedIn) return;
         const uId = user.uid;
 
-        const unsubEvents = onSnapshot(collection(db, 'artifacts', appId, 'users', uId, 'events'), snap => {
+        const unsubEvents = onSnapshot(collection(db, 'artifacts', targetAppId, 'users', uId, 'events'), snap => {
           setEvents(snap.docs.map(d => ({id: d.id, ...d.data()})));
         });
-        const unsubCustomers = onSnapshot(collection(db, 'artifacts', appId, 'users', uId, 'customers'), snap => {
+        const unsubCustomers = onSnapshot(collection(db, 'artifacts', targetAppId, 'users', uId, 'customers'), snap => {
           setCustomers(snap.docs.map(d => ({id: d.id, ...d.data()})));
         });
-        const unsubInquiries = onSnapshot(collection(db, 'artifacts', appId, 'users', uId, 'inquiries'), snap => {
+        const unsubInquiries = onSnapshot(collection(db, 'artifacts', targetAppId, 'users', uId, 'inquiries'), snap => {
           setInquiries(snap.docs.map(d => ({id: d.id, ...d.data()})));
         });
-        const unsubTasks = onSnapshot(collection(db, 'artifacts', appId, 'users', uId, 'tasks'), snap => {
+        const unsubTasks = onSnapshot(collection(db, 'artifacts', targetAppId, 'users', uId, 'tasks'), snap => {
           setTasks(snap.docs.map(d => ({id: d.id, ...d.data()})));
         });
-        const unsubAlbums = onSnapshot(collection(db, 'artifacts', appId, 'users', uId, 'albums'), snap => {
+        const unsubAlbums = onSnapshot(collection(db, 'artifacts', targetAppId, 'users', uId, 'albums'), snap => {
           setAlbums(snap.docs.map(d => ({id: d.id, ...d.data()})));
         });
 
@@ -442,24 +410,21 @@
       };
 
       const handleSaveAlbum = async () => {
-        if (!user || !db) { setAlertMessage("로그인 후 이용 가능합니다."); return; }
-        
         if (albumForm.id) {
-           if (!albumForm.title.trim()) { setAlertMessage("사진명(제목)을 입력해주세요."); return; }
+           if (!String(albumForm.title || '').trim()) { setAlertMessage("사진명(제목)을 입력해주세요."); return; }
            let newImageUrl = albumForm.imageUrl;
            if (albumForm.files && albumForm.files.length > 0) newImageUrl = await compressImage(albumForm.files[0]);
            
-           await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'albums', albumForm.id), {
+           await updateDoc(doc(db, 'artifacts', targetAppId, 'users', user.uid, 'albums', albumForm.id), {
               category: albumForm.category === '전체' ? '기타' : albumForm.category,
               title: albumForm.title, ref: albumForm.ref, memo: albumForm.memo, imageUrl: newImageUrl
            });
-           
            setIsAlbumModalOpen(false); setAlbumForm(null); setAlertMessage("사진이 수정되었습니다.");
            return;
         }
 
         if (!albumForm.files || albumForm.files.length === 0) { setAlertMessage("사진을 선택해주세요."); return; }
-        if (!albumForm.title.trim()) { setAlertMessage("사진명(제목)을 입력해주세요."); return; }
+        if (!String(albumForm.title || '').trim()) { setAlertMessage("사진명(제목)을 입력해주세요."); return; }
         
         setAlertMessage("사진을 저장 중입니다...\n잠시만 기다려주세요.");
         
@@ -470,7 +435,7 @@
               imageUrl: base64Url, category: albumForm.category === '전체' ? '기타' : albumForm.category,
               title: albumForm.title, ref: albumForm.ref, memo: albumForm.memo, date: new Date().toISOString().split('T')[0]
             };
-            await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'albums'), payload);
+            await addDoc(collection(db, 'artifacts', targetAppId, 'users', user.uid, 'albums'), payload);
           });
           await Promise.all(promises);
           setIsAlbumModalOpen(false); setAlbumForm(null);
@@ -518,9 +483,7 @@
            isOpen: true,
            message: "이 사진을 삭제하시겠습니까?",
            onConfirm: async () => {
-              if (user && db) {
-                 await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'albums', albumForm.id));
-              }
+              await deleteDoc(doc(db, 'artifacts', targetAppId, 'users', user.uid, 'albums', albumForm.id));
               setIsAlbumModalOpen(false); setAlbumForm(null);
               setConfirmDialog({ isOpen: false, message: '', onConfirm: null });
            }
@@ -531,8 +494,7 @@
       // 달력 로직
       // ==========================================
       const handleSaveEvent = async () => {
-        if (!formData.title.trim() || !formData.date) { setAlertMessage("일정 제목과 날짜를 확인해주세요."); return; }
-        if (!user || !db) return;
+        if (!String(formData.title || '').trim() || !formData.date) { setAlertMessage("일정 제목과 날짜를 확인해주세요."); return; }
 
         const eventData = { 
            date: formData.date, 
@@ -541,8 +503,8 @@
            updatedAt: new Date().toISOString() 
         };
         
-        if (formData.id) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'events', formData.id), eventData);
-        else await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'events'), eventData);
+        if (formData.id) await updateDoc(doc(db, 'artifacts', targetAppId, 'users', user.uid, 'events', formData.id), eventData);
+        else await addDoc(collection(db, 'artifacts', targetAppId, 'users', user.uid, 'events'), eventData);
         
         setIsAddModalOpen(false); setIsMultiDay(false);
         setFormData({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'yellow' });
@@ -600,8 +562,12 @@
         return (
           <div className="flex flex-col h-full bg-[#FCFBF9] relative font-serif">
             <div className="flex flex-col items-center justify-center pt-[calc(env(safe-area-inset-top)+16px)] pb-4 relative z-20 shrink-0">
+              <div className="flex w-full px-5 justify-between items-start absolute top-[calc(env(safe-area-inset-top)+10px)] left-0">
+                 <div className="w-8"></div>
+                 <button onClick={handleLogout} className="text-[#A8A29D] hover:text-[#A06C6C] transition-colors text-[11px] font-sans border border-[#E8E4DB] px-3 py-1 rounded-full shadow-sm bg-white">로그아웃</button>
+              </div>
               <a href="https://www.patek.com/en" target="_blank" rel="noopener noreferrer">
-                 <img src="./logo.png" alt="Brand Logo" className="w-16 h-16 mb-5 object-contain hover:opacity-100 transition-opacity cursor-pointer" />
+                 <img src="./logo.png" alt="Brand Logo" className="w-16 h-16 mb-5 mt-2 object-contain hover:opacity-100 transition-opacity cursor-pointer" />
               </a>
               <div className="flex items-center justify-between w-full max-w-[300px]">
                 <button onClick={prevMonth} className="p-2 text-[#C2BDB5] hover:text-[#8A847E] transition-colors"><ChevronLeft size={24} strokeWidth={1} /></button>
@@ -700,13 +666,13 @@
         const filteredAndSorted = [...customers].filter(c => {
             if (!safeQuery) return true;
             const matchName = String(c.name || '').toLowerCase().replace(/[\s-]/g, '').includes(safeQuery);
-            const matchRef = c.purchases && c.purchases.some(p => String(p.ref || '').toLowerCase().replace(/[\s-]/g, '').includes(safeQuery));
+            const matchRef = (c.purchases || []).some(p => String(p.ref || '').toLowerCase().replace(/[\s-]/g, '').includes(safeQuery));
             return matchName || matchRef;
         }).sort((a, b) => {
-            const aQty = a.purchases.reduce((sum, p) => sum + (Number(p.qty) || 0), 0);
-            const aAmt = a.purchases.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-            const bQty = b.purchases.reduce((sum, p) => sum + (Number(p.qty) || 0), 0);
-            const bAmt = b.purchases.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+            const aQty = (a.purchases || []).reduce((sum, p) => sum + (Number(p.qty) || 0), 0);
+            const aAmt = (a.purchases || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+            const bQty = (b.purchases || []).reduce((sum, p) => sum + (Number(p.qty) || 0), 0);
+            const bAmt = (b.purchases || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
             if (sortOrder === 'amount_desc') return bAmt - aAmt;
             if (sortOrder === 'amount_asc') return aAmt - bAmt;
             if (sortOrder === 'qty_desc') return bQty - aQty;
@@ -749,8 +715,8 @@
 
             <div className="flex-1 overflow-y-auto no-scrollbar pb-[130px] relative">
               {filteredAndSorted.map(customer => {
-                const totalQty = customer.purchases.reduce((sum, p) => sum + (Number(p.qty) || 0), 0);
-                const totalAmount = customer.purchases.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+                const totalQty = (customer.purchases || []).reduce((sum, p) => sum + (Number(p.qty) || 0), 0);
+                const totalAmount = (customer.purchases || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
                 return (
                   <div key={customer.id} onClick={() => { setCustomerForm(JSON.parse(JSON.stringify(customer))); setIsCustomerModalOpen(true); }} className="grid grid-cols-[1.5fr_1fr_1.5fr] px-5 py-4 border-b border-[#F2EFE8] bg-white items-center cursor-pointer hover:bg-[#FDFBF7] transition-colors">
                     <div className="flex items-center justify-center gap-2 w-full pl-2">
@@ -779,14 +745,14 @@
         let filteredInquiries = [...inquiries].filter(i => {
             if (!safeQuery) return true;
             const matchName = String(i.customerName || '').toLowerCase().replace(/[\s-]/g, '').includes(safeQuery);
-            const matchRef = i.items && i.items.some(item => String(item.ref || '').toLowerCase().replace(/[\s-]/g, '').includes(safeQuery));
+            const matchRef = (i.items || []).some(item => String(item.ref || '').toLowerCase().replace(/[\s-]/g, '').includes(safeQuery));
             return matchName || matchRef;
         });
         
         if (inquirySortOrder === 'filter_old') filteredInquiries = filteredInquiries.filter(i => i.type === '기존');
         else if (inquirySortOrder === 'filter_new') filteredInquiries = filteredInquiries.filter(i => i.type === '신규');
-        else if (inquirySortOrder === 'date_desc') filteredInquiries.sort((a, b) => b.date.localeCompare(a.date));
-        else if (inquirySortOrder === 'name_asc') filteredInquiries.sort((a, b) => a.customerName.localeCompare(b.customerName));
+        else if (inquirySortOrder === 'date_desc') filteredInquiries.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+        else if (inquirySortOrder === 'name_asc') filteredInquiries.sort((a, b) => String(a.customerName || '').localeCompare(String(b.customerName || '')));
 
         return (
           <div className="flex flex-col h-full bg-[#FCFBF9] font-serif relative">
@@ -955,8 +921,8 @@
       // --- 5. 업무 (Tasks) ---
       const renderTaskTab = () => {
         let filteredTasks = tasks.filter(t => taskFilter === '전체' || t.category === taskFilter);
-        if (taskSortOrder === 'date_desc') filteredTasks.sort((a,b) => b.date.localeCompare(a.date));
-        if (taskSortOrder === 'date_asc') filteredTasks.sort((a,b) => a.date.localeCompare(b.date));
+        if (taskSortOrder === 'date_desc') filteredTasks.sort((a,b) => String(b.date || '').localeCompare(String(a.date || '')));
+        if (taskSortOrder === 'date_asc') filteredTasks.sort((a,b) => String(a.date || '').localeCompare(String(b.date || '')));
         filteredTasks.sort((a, b) => (a.isCompleted === b.isCompleted ? 0 : a.isCompleted ? 1 : -1));
 
         const toggleTaskCompletion = async (id) => { 
@@ -1042,7 +1008,7 @@
         if (!isCustomerModalOpen || !customerForm) return null;
 
         const handleSaveCustomer = async () => {
-          if (!customerForm.name.trim()) { setAlertMessage("고객명을 입력해주세요."); return; }
+          if (!String(customerForm.name || '').trim()) { setAlertMessage("고객명을 입력해주세요."); return; }
           const payload = { ...customerForm };
           const targetId = payload.id;
           delete payload.id; 
@@ -1054,8 +1020,8 @@
         };
 
         const updatePurchase = (index, field, value) => {
-          const newPurchases = [...customerForm.purchases];
-          if (field === 'amount') newPurchases[index][field] = value.replace(/,/g, '');
+          const newPurchases = [...(customerForm.purchases || [])];
+          if (field === 'amount') newPurchases[index][field] = String(value).replace(/,/g, '');
           else newPurchases[index][field] = value;
           setCustomerForm({ ...customerForm, purchases: newPurchases });
         };
@@ -1065,7 +1031,7 @@
              isOpen: true,
              message: "해당 내역을\n삭제하시겠습니까?",
              onConfirm: () => {
-                const newPurchases = customerForm.purchases.filter((_, i) => i !== index);
+                const newPurchases = (customerForm.purchases || []).filter((_, i) => i !== index);
                 setCustomerForm({ ...customerForm, purchases: newPurchases });
                 setConfirmDialog({ isOpen: false, message: '', onConfirm: null });
              }
@@ -1073,7 +1039,7 @@
         };
 
         const addPurchaseRow = () => {
-          setCustomerForm({ ...customerForm, purchases: [...customerForm.purchases, { id: Date.now().toString(), date: '', ref: '', qty: '', amount: '', note: '' }] });
+          setCustomerForm({ ...customerForm, purchases: [...(customerForm.purchases || []), { id: Date.now().toString(), date: '', ref: '', qty: '', amount: '', note: '' }] });
         };
 
         const handleWishlistClick = () => {
@@ -1083,8 +1049,8 @@
           } else { setAlertMessage("현재 등록된\nWish List가 없습니다."); }
         };
 
-        const totalQty = customerForm.purchases.reduce((sum, p) => sum + (Number(p.qty) || 0), 0);
-        const totalAmount = customerForm.purchases.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+        const totalQty = (customerForm.purchases || []).reduce((sum, p) => sum + (Number(p.qty) || 0), 0);
+        const totalAmount = (customerForm.purchases || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
         return (
           <div className="absolute inset-0 bg-[#FCFBF9] z-[100] flex flex-col font-sans animate-in slide-in-from-bottom-5">
@@ -1099,7 +1065,7 @@
 
             <div className="flex-1 overflow-y-auto px-5 pb-24 mt-4 no-scrollbar">
               <div className="relative flex items-center justify-center mb-6 h-12">
-                <input type="text" value={customerForm.name} onChange={(e) => setCustomerForm({...customerForm, name: e.target.value})} placeholder="고객명 입력" className="text-3xl font-serif font-bold text-center text-[#2C2724] bg-transparent outline-none w-full placeholder-[#DCD6CC]" />
+                <input type="text" value={customerForm.name || ''} onChange={(e) => setCustomerForm({...customerForm, name: e.target.value})} placeholder="고객명 입력" className="text-3xl font-serif font-bold text-center text-[#2C2724] bg-transparent outline-none w-full placeholder-[#DCD6CC]" />
                 <div className="absolute right-0 top-0 bottom-0 flex items-center justify-center p-1">
                   <img src="./wish.png" alt="Wishlist" className="h-full w-auto object-contain cursor-pointer hover:opacity-80 transition-opacity drop-shadow-sm" onClick={handleWishlistClick} />
                 </div>
@@ -1108,21 +1074,21 @@
               <div className="bg-white border border-[#E8E4DB] rounded-xl p-5 mb-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
                 <div className="flex items-center py-3 border-b border-[#F2EFE8]">
                   <span className="text-[13px] text-[#8A847E] w-[55px] shrink-0">고객명</span>
-                  <input type="text" value={customerForm.name} onChange={(e) => setCustomerForm({...customerForm, name: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-[50px]" placeholder="이름" />
+                  <input type="text" value={customerForm.name || ''} onChange={(e) => setCustomerForm({...customerForm, name: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-[50px]" placeholder="이름" />
                   <span className="text-[13px] text-[#8A847E] w-auto whitespace-nowrap mx-2 shrink-0">생년월일</span>
-                  <input type="text" value={customerForm.birthDate} onChange={(e) => setCustomerForm({...customerForm, birthDate: formatBirthDate(e.target.value)})} className="bg-transparent outline-none text-[#4A443F] text-sm text-right w-[76px] shrink-0 tracking-tight" placeholder="YYYY.MM.DD" maxLength="10" />
+                  <input type="text" value={customerForm.birthDate || ''} onChange={(e) => setCustomerForm({...customerForm, birthDate: formatBirthDate(e.target.value)})} className="bg-transparent outline-none text-[#4A443F] text-sm text-right w-[76px] shrink-0 tracking-tight" placeholder="YYYY.MM.DD" maxLength="10" />
                 </div>
                 <div className="flex items-center py-3 border-b border-[#F2EFE8]">
                   <span className="text-[13px] text-[#8A847E] w-[60px] shrink-0">연락처</span>
-                  <input type="text" value={customerForm.phone} onChange={(e) => setCustomerForm({...customerForm, phone: formatPhoneNumber(e.target.value)})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-0" placeholder="010-0000-0000" maxLength="13" />
+                  <input type="text" value={customerForm.phone || ''} onChange={(e) => setCustomerForm({...customerForm, phone: formatPhoneNumber(e.target.value)})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-0" placeholder="010-0000-0000" maxLength="13" />
                 </div>
                 <div className="flex items-center py-3 border-b border-[#F2EFE8]">
                   <span className="text-[13px] text-[#8A847E] w-[60px] shrink-0">직업</span>
-                  <input type="text" value={customerForm.job} onChange={(e) => setCustomerForm({...customerForm, job: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-0" placeholder="직업 입력" />
+                  <input type="text" value={customerForm.job || ''} onChange={(e) => setCustomerForm({...customerForm, job: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-0" placeholder="직업 입력" />
                 </div>
                 <div className="flex items-start pt-3">
                   <span className="text-[13px] text-[#8A847E] w-[60px] shrink-0 mt-1">특이사항</span>
-                  <textarea value={customerForm.notes} onChange={(e) => setCustomerForm({...customerForm, notes: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm resize-none h-16 min-w-0" placeholder="특이사항 메모"></textarea>
+                  <textarea value={customerForm.notes || ''} onChange={(e) => setCustomerForm({...customerForm, notes: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm resize-none h-16 min-w-0" placeholder="특이사항 메모"></textarea>
                 </div>
               </div>
 
@@ -1142,16 +1108,16 @@
                     <div className="grid grid-cols-[1.3fr_1.3fr_0.7fr_1.6fr_1.2fr_40px] text-[11px] text-[#8A847E] bg-[#FDFBF7] py-2 border-b border-[#E8E4DB] text-center">
                       <div>구매일</div><div>REF.</div><div>수량</div><div>금액</div><div>비고</div><div>삭제</div>
                     </div>
-                    {customerForm.purchases.map((p, idx) => (
+                    {(customerForm.purchases || []).map((p, idx) => (
                       <div key={p.id} className="grid grid-cols-[1.3fr_1.3fr_0.7fr_1.6fr_1.2fr_40px] border-b border-[#F2EFE8] items-center text-[12px] text-[#4A443F]">
-                        <input type="text" value={p.date} onChange={(e) => updatePurchase(idx, 'date', e.target.value)} placeholder="YYYY-MM-DD" className="w-full bg-transparent text-center py-3 outline-none" />
-                        <input type="text" value={p.ref} onChange={(e) => updatePurchase(idx, 'ref', e.target.value)} placeholder="REF" className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" />
-                        <input type="number" value={p.qty} onChange={(e) => updatePurchase(idx, 'qty', e.target.value)} placeholder="0" className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" />
+                        <input type="text" value={p.date || ''} onChange={(e) => updatePurchase(idx, 'date', e.target.value)} placeholder="YYYY-MM-DD" className="w-full bg-transparent text-center py-3 outline-none" />
+                        <input type="text" value={p.ref || ''} onChange={(e) => updatePurchase(idx, 'ref', e.target.value)} placeholder="REF" className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" />
+                        <input type="number" value={p.qty || ''} onChange={(e) => updatePurchase(idx, 'qty', e.target.value)} placeholder="0" className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" />
                         <div className="relative border-l border-[#F2EFE8] h-full flex items-center">
                           <span className="absolute left-1.5 text-[#8A847E] text-[11px]">₩</span>
                           <input type="text" value={formatAmount(p.amount)} onChange={(e) => updatePurchase(idx, 'amount', e.target.value)} placeholder="0" className="w-full bg-transparent text-right pr-2 py-3 outline-none" />
                         </div>
-                        <input type="text" value={p.note} onChange={(e) => updatePurchase(idx, 'note', e.target.value)} className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" placeholder="비고" />
+                        <input type="text" value={p.note || ''} onChange={(e) => updatePurchase(idx, 'note', e.target.value)} className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" placeholder="비고" />
                         <div className="border-l border-[#F2EFE8] h-full flex items-center justify-center">
                            <button onClick={() => confirmDeletePurchase(idx)} className="text-[#DCD6CC] hover:text-[#A06C6C] transition-colors"><Trash2 size={16} /></button>
                         </div>
@@ -1170,7 +1136,7 @@
         if (!isInquiryModalOpen || !inquiryForm) return null;
 
         const handleSaveInquiry = async () => {
-          if (!inquiryForm.customerName.trim()) { setAlertMessage("고객명을 입력해주세요."); return; }
+          if (!String(inquiryForm.customerName || '').trim()) { setAlertMessage("고객명을 입력해주세요."); return; }
           const payload = { ...inquiryForm };
           const targetId = payload.id;
           delete payload.id; 
@@ -1182,7 +1148,7 @@
         };
 
         const updateInquiryItem = (itemId, field, value) => {
-          const newItems = inquiryForm.items.map(item => item.id === itemId ? { ...item, [field]: value } : item);
+          const newItems = (inquiryForm.items || []).map(item => item.id === itemId ? { ...item, [field]: value } : item);
           setInquiryForm({ ...inquiryForm, items: newItems });
         };
 
@@ -1191,7 +1157,7 @@
              isOpen: true,
              message: "해당 내역을\n삭제하시겠습니까?",
              onConfirm: () => {
-                const newItems = inquiryForm.items.filter(item => item.id !== itemId);
+                const newItems = (inquiryForm.items || []).filter(item => item.id !== itemId);
                 setInquiryForm({ ...inquiryForm, items: newItems });
                 setConfirmDialog({ isOpen: false, message: '', onConfirm: null });
              }
@@ -1199,7 +1165,7 @@
         };
 
         const addInquiryItem = () => {
-          setInquiryForm({ ...inquiryForm, items: [...inquiryForm.items, { id: Date.now().toString(), date: '', ref: '', proposedDate: '', note: '', isCompleted: false }] });
+          setInquiryForm({ ...inquiryForm, items: [...(inquiryForm.items || []), { id: Date.now().toString(), date: '', ref: '', proposedDate: '', note: '', isCompleted: false }] });
         };
 
         const handleCustomerClick = () => {
@@ -1209,7 +1175,7 @@
           } else { setAlertMessage("구매내역이 \n없습니다."); }
         };
 
-        const sortedItems = [...inquiryForm.items].sort((a, b) => (a.isCompleted === b.isCompleted ? 0 : a.isCompleted ? 1 : -1));
+        const sortedItems = [...(inquiryForm.items || [])].sort((a, b) => (a.isCompleted === b.isCompleted ? 0 : a.isCompleted ? 1 : -1));
 
         return (
           <div className="absolute inset-0 bg-[#FCFBF9] z-[100] flex flex-col font-sans animate-in slide-in-from-bottom-5">
@@ -1224,7 +1190,7 @@
 
             <div className="flex-1 overflow-y-auto px-5 pb-24 mt-4 no-scrollbar">
               <div className="relative flex items-center justify-center mb-6 h-12">
-                <input type="text" value={inquiryForm.customerName} onChange={(e) => setInquiryForm({...inquiryForm, customerName: e.target.value})} placeholder="고객명 입력" className="text-3xl font-serif font-bold text-center text-[#2C2724] bg-transparent outline-none w-full placeholder-[#DCD6CC]" />
+                <input type="text" value={inquiryForm.customerName || ''} onChange={(e) => setInquiryForm({...inquiryForm, customerName: e.target.value})} placeholder="고객명 입력" className="text-3xl font-serif font-bold text-center text-[#2C2724] bg-transparent outline-none w-full placeholder-[#DCD6CC]" />
                 <div className="absolute right-0 top-0 bottom-0 flex items-center justify-center p-1">
                   <img src="./customer.png" alt="Customer" className="h-full w-auto object-contain cursor-pointer hover:opacity-80 transition-opacity" onClick={handleCustomerClick} />
                 </div>
@@ -1235,7 +1201,7 @@
                   <span className="text-[13px] text-[#8A847E] w-[55px] shrink-0">분류</span>
                   <div className="flex gap-2 flex-1 relative">
                     <select 
-                      value={inquiryForm.type} 
+                      value={inquiryForm.type || '기존'} 
                       onChange={(e) => setInquiryForm({...inquiryForm, type: e.target.value})} 
                       className="flex-1 bg-transparent outline-none text-[#2C2724] text-sm appearance-none cursor-pointer w-full"
                     >
@@ -1247,25 +1213,25 @@
                 </div>
                 <div className="flex items-center py-3 border-b border-[#F2EFE8]">
                   <span className="text-[13px] text-[#8A847E] w-[55px] shrink-0">고객명</span>
-                  <input type="text" value={inquiryForm.customerName} onChange={(e) => setInquiryForm({...inquiryForm, customerName: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-[50px]" placeholder="이름" />
+                  <input type="text" value={inquiryForm.customerName || ''} onChange={(e) => setInquiryForm({...inquiryForm, customerName: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-[50px]" placeholder="이름" />
                   <span className="text-[13px] text-[#8A847E] w-auto whitespace-nowrap mx-2 shrink-0">생년월일</span>
-                  <input type="text" value={inquiryForm.birthDate} onChange={(e) => setInquiryForm({...inquiryForm, birthDate: formatBirthDate(e.target.value)})} className="bg-transparent outline-none text-[#4A443F] text-sm text-right w-[76px] shrink-0 tracking-tight" placeholder="YYYY.MM.DD" maxLength="10" />
+                  <input type="text" value={inquiryForm.birthDate || ''} onChange={(e) => setInquiryForm({...inquiryForm, birthDate: formatBirthDate(e.target.value)})} className="bg-transparent outline-none text-[#4A443F] text-sm text-right w-[76px] shrink-0 tracking-tight" placeholder="YYYY.MM.DD" maxLength="10" />
                 </div>
                 <div className="flex items-center py-3 border-b border-[#F2EFE8]">
                   <span className="text-[13px] text-[#8A847E] w-[60px] shrink-0">연락처</span>
-                  <input type="text" value={inquiryForm.customerPhone} onChange={(e) => setInquiryForm({...inquiryForm, customerPhone: formatPhoneNumber(e.target.value)})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-0" placeholder="010-0000-0000" maxLength="13" />
+                  <input type="text" value={inquiryForm.customerPhone || ''} onChange={(e) => setInquiryForm({...inquiryForm, customerPhone: formatPhoneNumber(e.target.value)})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-0" placeholder="010-0000-0000" maxLength="13" />
                 </div>
                 <div className="flex items-center py-3 border-b border-[#F2EFE8]">
                   <span className="text-[13px] text-[#8A847E] w-[60px] shrink-0">직업</span>
-                  <input type="text" value={inquiryForm.job} onChange={(e) => setInquiryForm({...inquiryForm, job: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-0" placeholder="직업 입력" />
+                  <input type="text" value={inquiryForm.job || ''} onChange={(e) => setInquiryForm({...inquiryForm, job: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-0" placeholder="직업 입력" />
                 </div>
                 <div className="flex items-center py-3 border-b border-[#F2EFE8]">
                   <span className="text-[13px] text-[#8A847E] w-[60px] shrink-0">특이사항</span>
-                  <input type="text" value={inquiryForm.notes} onChange={(e) => setInquiryForm({...inquiryForm, notes: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-0" placeholder="특이사항" />
+                  <input type="text" value={inquiryForm.notes || ''} onChange={(e) => setInquiryForm({...inquiryForm, notes: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-0" placeholder="특이사항" />
                 </div>
                 <div className="flex items-start pt-3">
                   <span className="text-[13px] text-[#8A847E] w-[60px] shrink-0 mt-1">메모</span>
-                  <textarea value={inquiryForm.memo} onChange={(e) => setInquiryForm({...inquiryForm, memo: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm resize-none h-16 min-w-0" placeholder="메모 입력"></textarea>
+                  <textarea value={inquiryForm.memo || ''} onChange={(e) => setInquiryForm({...inquiryForm, memo: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm resize-none h-16 min-w-0" placeholder="메모 입력"></textarea>
                 </div>
               </div>
 
@@ -1284,10 +1250,10 @@
                         <div className="flex justify-center p-2">
                           <input type="checkbox" checked={item.isCompleted} onChange={(e) => updateInquiryItem(item.id, 'isCompleted', e.target.checked)} className="w-[14px] h-[14px] accent-[#8B7355] cursor-pointer" />
                         </div>
-                        <input type="text" value={item.date} onChange={(e) => updateInquiryItem(item.id, 'date', e.target.value)} disabled={item.isCompleted} placeholder="YYYY-MM-DD" className="w-full bg-transparent text-center py-3 outline-none" />
-                        <input type="text" value={item.ref} onChange={(e) => updateInquiryItem(item.id, 'ref', e.target.value)} disabled={item.isCompleted} placeholder="REF" className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" />
-                        <input type="text" value={item.proposedDate} onChange={(e) => updateInquiryItem(item.id, 'proposedDate', e.target.value)} disabled={item.isCompleted} placeholder="제시일" className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" />
-                        <input type="text" value={item.note} onChange={(e) => updateInquiryItem(item.id, 'note', e.target.value)} disabled={item.isCompleted} placeholder="비고" className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" />
+                        <input type="text" value={item.date || ''} onChange={(e) => updateInquiryItem(item.id, 'date', e.target.value)} disabled={item.isCompleted} placeholder="YYYY-MM-DD" className="w-full bg-transparent text-center py-3 outline-none" />
+                        <input type="text" value={item.ref || ''} onChange={(e) => updateInquiryItem(item.id, 'ref', e.target.value)} disabled={item.isCompleted} placeholder="REF" className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" />
+                        <input type="text" value={item.proposedDate || ''} onChange={(e) => updateInquiryItem(item.id, 'proposedDate', e.target.value)} disabled={item.isCompleted} placeholder="제시일" className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" />
+                        <input type="text" value={item.note || ''} onChange={(e) => updateInquiryItem(item.id, 'note', e.target.value)} disabled={item.isCompleted} placeholder="비고" className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" />
                         <div className="border-l border-[#F2EFE8] h-full flex items-center justify-center">
                            <button onClick={() => confirmDeleteInquiryItem(item.id)} disabled={item.isCompleted} className="text-[#DCD6CC] hover:text-[#A06C6C] transition-colors"><Trash2 size={16} /></button>
                         </div>
@@ -1328,7 +1294,7 @@
               <button onClick={handleSaveAlbum} className="text-[#8B7355] text-[15px] font-medium hover:text-[#6B5335] py-2">완료</button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 pb-24 mt-4 no-scrollbar">
+            <div className="flex-1 overflow-y-auto px-5 pb-24 mt-8 no-scrollbar">
               <input type="file" multiple={!albumForm.id} accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
               <div 
                 onClick={() => fileInputRef.current?.click()} 
@@ -1357,15 +1323,15 @@
               <div className="bg-white border border-[#E8E4DB] rounded-[14px] p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] mb-8">
                 <div className="flex flex-col py-3 border-b border-[#F2EFE8]">
                   <span className="text-[13px] text-[#2C2724] font-medium mb-1.5 ml-1">사진명</span>
-                  <input type="text" value={albumForm.title} onChange={(e) => setAlbumForm({...albumForm, title: e.target.value})} className="bg-transparent outline-none text-[#4A443F] w-full text-sm px-1 py-1" placeholder="제목을 입력하세요" />
+                  <input type="text" value={albumForm.title || ''} onChange={(e) => setAlbumForm({...albumForm, title: e.target.value})} className="bg-transparent outline-none text-[#4A443F] w-full text-sm px-1 py-1" placeholder="제목을 입력하세요" />
                 </div>
                 <div className="flex flex-col py-3 border-b border-[#F2EFE8]">
                   <span className="text-[13px] text-[#2C2724] font-medium mb-1.5 ml-1">REF.</span>
-                  <input type="text" value={albumForm.ref} onChange={(e) => setAlbumForm({...albumForm, ref: e.target.value})} className="bg-transparent outline-none text-[#4A443F] w-full text-sm px-1 py-1" placeholder="레퍼런스 넘버 입력" />
+                  <input type="text" value={albumForm.ref || ''} onChange={(e) => setAlbumForm({...albumForm, ref: e.target.value})} className="bg-transparent outline-none text-[#4A443F] w-full text-sm px-1 py-1" placeholder="레퍼런스 넘버 입력" />
                 </div>
                 <div className="flex flex-col pt-3 pb-1">
                   <span className="text-[13px] text-[#2C2724] font-medium mb-2 ml-1">메모</span>
-                  <textarea value={albumForm.memo} onChange={(e) => setAlbumForm({...albumForm, memo: e.target.value})} className="bg-transparent outline-none text-[#4A443F] w-full text-sm resize-none h-[70px] px-1" placeholder="메모를 입력하세요"></textarea>
+                  <textarea value={albumForm.memo || ''} onChange={(e) => setAlbumForm({...albumForm, memo: e.target.value})} className="bg-transparent outline-none text-[#4A443F] w-full text-sm resize-none h-[70px] px-1" placeholder="메모를 입력하세요"></textarea>
                 </div>
               </div>
               
@@ -1384,7 +1350,7 @@
         const isExisting = tasks.some(t => t.id === taskForm.id);
 
         const handleSaveTask = async () => {
-          if (!taskForm.title.trim()) { setAlertMessage("업무 내용을 입력해주세요."); return; }
+          if (!String(taskForm.title || '').trim()) { setAlertMessage("업무 내용을 입력해주세요."); return; }
           const payload = { ...taskForm };
           const targetId = payload.id;
           delete payload.id; 
@@ -1412,7 +1378,7 @@
               <div className="space-y-7">
                 <div>
                   <label className="block text-[11px] font-medium tracking-widest text-[#8A847E] mb-2 uppercase font-sans">Date</label>
-                  <input type="date" value={taskForm.date} onChange={(e) => setTaskForm({...taskForm, date: e.target.value})} className="w-full bg-transparent border-b border-[#DCD6CC] py-2 text-[#4A443F] focus:border-[#8B7355] outline-none transition-all font-serif text-sm" />
+                  <input type="date" value={taskForm.date || ''} onChange={(e) => setTaskForm({...taskForm, date: e.target.value})} className="w-full bg-transparent border-b border-[#DCD6CC] py-2 text-[#4A443F] focus:border-[#8B7355] outline-none transition-all font-serif text-sm" />
                 </div>
                 <div>
                   <label className="block text-[11px] font-medium tracking-widest text-[#8A847E] mb-3 uppercase font-sans">Category</label>
@@ -1424,11 +1390,11 @@
                 </div>
                 <div>
                   <label className="block text-[11px] font-medium tracking-widest text-[#8A847E] mb-2 uppercase font-sans">Title</label>
-                  <input type="text" placeholder="업무 내용을 입력하세요" value={taskForm.title} onChange={(e) => setTaskForm({...taskForm, title: e.target.value})} className="w-full bg-transparent border-b border-[#DCD6CC] py-2 text-[#4A443F] placeholder-[#C2BDB5] focus:border-[#8B7355] outline-none transition-all font-sans text-sm font-medium" />
+                  <input type="text" placeholder="업무 내용을 입력하세요" value={taskForm.title || ''} onChange={(e) => setTaskForm({...taskForm, title: e.target.value})} className="w-full bg-transparent border-b border-[#DCD6CC] py-2 text-[#4A443F] placeholder-[#C2BDB5] focus:border-[#8B7355] outline-none transition-all font-sans text-sm font-medium" />
                 </div>
                 <div>
                   <label className="block text-[11px] font-medium tracking-widest text-[#8A847E] mb-2 uppercase font-sans">Memo</label>
-                  <textarea rows="3" placeholder="상세 내용을 입력하세요" value={taskForm.memo} onChange={(e) => setTaskForm({...taskForm, memo: e.target.value})} className="w-full bg-white border border-[#E8E4DB] rounded-sm shadow-sm p-4 text-[#4A443F] placeholder-[#C2BDB5] focus:ring-1 focus:ring-[#8B7355] focus:border-[#8B7355] outline-none transition-all resize-none text-sm font-serif leading-relaxed"></textarea>
+                  <textarea rows="3" placeholder="상세 내용을 입력하세요" value={taskForm.memo || ''} onChange={(e) => setTaskForm({...taskForm, memo: e.target.value})} className="w-full bg-white border border-[#E8E4DB] rounded-sm shadow-sm p-4 text-[#4A443F] placeholder-[#C2BDB5] focus:ring-1 focus:ring-[#8B7355] focus:border-[#8B7355] outline-none transition-all resize-none text-sm font-serif leading-relaxed"></textarea>
                 </div>
                 {isExisting ? (
                   <div className="flex gap-3 w-full mt-2">
@@ -1473,7 +1439,7 @@
             </div>
 
             {/* Bottom Navigation */}
-            <div className="w-full bg-[#FCFBF9] border-t border-[#E8E4DB] grid grid-cols-5 px-1 pt-2 pb-[calc(env(safe-area-inset-bottom)+8px)] z-30 shrink-0">
+            <div className="absolute bottom-0 w-full bg-[#FCFBF9] border-t border-[#E8E4DB] grid grid-cols-5 px-1 pt-2 pb-[calc(env(safe-area-inset-bottom)+8px)] z-30 shrink-0">
               <button onClick={() => setActiveTab('customer')} className={`flex flex-col items-center justify-center space-y-1.5 transition-colors relative ${activeTab === 'customer' ? 'text-[#8B7355]' : 'text-[#A8A29D] hover:text-[#7A746F]'}`}>
                 {activeTab === 'customer' && <div className="absolute top-0 w-8 h-[2px] bg-[#8B7355]"></div>}
                 <Users size={22} strokeWidth={activeTab === 'customer' ? 1.5 : 1} />
