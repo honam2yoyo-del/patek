@@ -440,7 +440,7 @@
            
            if (user.uid !== 'local-test-user') {
              await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'albums', albumForm.id), {
-                category: albumForm.category === '전체' ? '기타' : albumForm.category,
+                category: albumForm.category,
                 title: albumForm.title, ref: albumForm.ref, memo: albumForm.memo, imageUrl: newImageUrl
              });
            }
@@ -457,7 +457,7 @@
           const promises = albumForm.files.map(async (file) => {
             const base64Url = await compressImage(file);
             const payload = {
-              imageUrl: base64Url, category: albumForm.category === '전체' ? '기타' : albumForm.category,
+              imageUrl: base64Url, category: albumForm.category,
               title: albumForm.title, ref: albumForm.ref, memo: albumForm.memo, date: new Date().toISOString().split('T')[0]
             };
             if (user.uid !== 'local-test-user') await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'albums'), payload);
@@ -616,7 +616,7 @@
               <div className="grid grid-cols-7 relative z-10 border-y border-[#E8E4DB] mx-5 shrink-0">
                 {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => <div key={day} className={`py-4 text-center text-[13px] tracking-widest font-serif ${idx === 0 ? 'text-[#A06C6C]' : 'text-[#6B635C]'}`}>{day}</div>)}
               </div>
-              <div className="flex-1 overflow-y-auto px-5 pb-[130px] no-scrollbar relative z-0">
+              <div className="flex-1 overflow-y-auto px-5 pb-[calc(130px+env(safe-area-inset-bottom))] no-scrollbar relative z-0">
                 {calendarWeeks.map((wDates, wIdx) => {
                   let weekEvents = events.filter(e => { const eStart = e.date; const eEnd = e.endDate || e.date; return eStart <= wDates[6] && eEnd >= wDates[0]; });
                   weekEvents.sort((a, b) => { if (a.date !== b.date) return a.date.localeCompare(b.date); const aDur = new Date(a.endDate || a.date) - new Date(a.date); const bDur = new Date(b.endDate || b.date) - new Date(b.date); return bDur - aDur; });
@@ -678,7 +678,7 @@
               </div>
             </div>
             
-            <button onClick={() => { setFormData({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'yellow' }); setIsAddModalOpen(true); }} className="absolute bottom-[100px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
+            <button onClick={() => { setFormData({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'yellow' }); setIsAddModalOpen(true); }} className="absolute bottom-[calc(100px+env(safe-area-inset-bottom))] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
               <Plus size={26} strokeWidth={1.2} />
             </button>
           </div>
@@ -739,7 +739,7 @@
               <div className="text-center pr-2">Amount</div>
             </div>
 
-            <div className="flex-1 overflow-y-auto no-scrollbar pb-[130px] relative">
+            <div className="flex-1 overflow-y-auto no-scrollbar pb-[calc(130px+env(safe-area-inset-bottom))] relative">
               {filteredAndSorted.map(customer => {
                 const totalQty = customer.purchases.reduce((sum, p) => sum + (Number(p.qty) || 0), 0);
                 const totalAmount = customer.purchases.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
@@ -757,7 +757,7 @@
               {filteredAndSorted.length === 0 && <div className="flex justify-center items-center h-32 text-[#A8A29D] font-serif">검색된 고객이 없습니다.</div>}
             </div>
 
-            <button onClick={() => { setCustomerForm({ id: '', name: '', birthDate: '', phone: '', job: '', notes: '', purchases: [] }); setIsCustomerModalOpen(true); }} className="absolute bottom-[100px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
+            <button onClick={() => { setCustomerForm({ id: '', name: '', birthDate: '', phone: '', job: '', notes: '', purchases: [] }); setIsCustomerModalOpen(true); }} className="absolute bottom-[calc(100px+env(safe-area-inset-bottom))] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
               <Plus size={26} strokeWidth={1.2} />
             </button>
           </div>
@@ -814,7 +814,7 @@
               <div className="text-center">Type</div>
             </div>
 
-            <div className="flex-1 overflow-y-auto no-scrollbar pb-[130px] relative">
+            <div className="flex-1 overflow-y-auto no-scrollbar pb-[calc(130px+env(safe-area-inset-bottom))] relative">
               {filteredInquiries.map(inquiry => (
                 <div key={inquiry.id} onClick={() => { setInquiryForm(JSON.parse(JSON.stringify(inquiry))); setIsInquiryModalOpen(true); }} className="grid grid-cols-[1.2fr_1fr_1fr] px-5 py-4 border-b border-[#F2EFE8] bg-white items-center cursor-pointer hover:bg-[#FDFBF7] transition-colors">
                   <div className="text-center font-sans text-[#6B635C] text-[13px]">{inquiry.date}</div>
@@ -825,7 +825,7 @@
               {filteredInquiries.length === 0 && <div className="flex justify-center items-center h-32 text-[#A8A29D] font-serif">검색된 정보가 없습니다.</div>}
             </div>
 
-            <button onClick={() => { setInquiryForm({ id: '', date: new Date().toISOString().split('T')[0], type: '신규', customerName: '', birthDate: '', customerPhone: '', job: '', notes: '', memo: '', items: [] }); setIsInquiryModalOpen(true); }} className="absolute bottom-[100px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
+            <button onClick={() => { setInquiryForm({ id: '', date: new Date().toISOString().split('T')[0], type: '신규', customerName: '', birthDate: '', customerPhone: '', job: '', notes: '', memo: '', items: [] }); setIsInquiryModalOpen(true); }} className="absolute bottom-[calc(100px+env(safe-area-inset-bottom))] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
               <Plus size={26} strokeWidth={1.2} />
             </button>
           </div>
@@ -873,7 +873,7 @@
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto no-scrollbar pb-[130px] relative px-5 pt-2">
+            <div className="flex-1 overflow-y-auto no-scrollbar pb-[calc(130px+env(safe-area-inset-bottom))] relative px-5 pt-2">
               <div className="grid grid-cols-2 gap-x-3 gap-y-4">
                 {filteredAlbums.map(album => {
                   const isSelected = selectedAlbumIds.includes(album.id);
@@ -932,10 +932,10 @@
             {selectedAlbumIds.length === 0 && (
               <button 
                 onClick={() => {
-                  setAlbumForm({ id: '', files: [], category: '전체', title: '', ref: '', memo: '' });
+                  setAlbumForm({ id: '', files: [], category: '착용샷', title: '', ref: '', memo: '' });
                   setIsAlbumModalOpen(true);
                 }}
-                className="absolute bottom-[100px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]"
+                className="absolute bottom-[calc(100px+env(safe-area-inset-bottom))] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]"
               >
                 <Plus size={26} strokeWidth={1.2} />
               </button>
@@ -994,7 +994,7 @@
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto no-scrollbar pb-[130px] relative">
+            <div className="flex-1 overflow-y-auto no-scrollbar pb-[calc(130px+env(safe-area-inset-bottom))] relative">
               <div className="bg-white mx-5 border border-[#E8E4DB] rounded-[10px] shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
                 {filteredTasks.map((t, idx) => {
                   const catInfo = TASK_CATEGORIES.find(c => c.label === t.category) || TASK_CATEGORIES[0];
@@ -1020,7 +1020,7 @@
               </div>
             </div>
 
-            <button onClick={() => { setTaskForm({ id: '', date: new Date().toISOString().split('T')[0], category: '매장', title: '', memo: '' }); setIsTaskModalOpen(true); }} className="absolute bottom-[100px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
+            <button onClick={() => { setTaskForm({ id: '', date: new Date().toISOString().split('T')[0], category: '매장', title: '', memo: '' }); setIsTaskModalOpen(true); }} className="absolute bottom-[calc(100px+env(safe-area-inset-bottom))] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
               <Plus size={26} strokeWidth={1.2} />
             </button>
           </div>
@@ -1172,7 +1172,7 @@
               <button onClick={handleSaveCustomer} className="text-[#8B7355] text-[15px] font-medium hover:text-[#6B5335] py-2">저장</button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 pb-[130px] mt-6 no-scrollbar">
+            <div className="flex-1 overflow-y-auto px-5 pb-[calc(130px+env(safe-area-inset-bottom))] mt-6 no-scrollbar">
               <div className="relative flex items-center justify-center mb-6 h-12">
                 <input type="text" value={customerForm.name} onChange={(e) => setCustomerForm({...customerForm, name: e.target.value})} placeholder="고객명 입력" className="text-3xl font-serif font-bold text-center text-[#2C2724] bg-transparent outline-none w-full placeholder-[#DCD6CC]" />
                 <div className="absolute right-0 top-0 bottom-0 flex items-center justify-center p-1">
@@ -1298,7 +1298,7 @@
               <button onClick={handleSaveInquiry} className="text-[#8B7355] text-[15px] font-medium hover:text-[#6B5335] py-2">저장</button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 pb-[130px] mt-6 no-scrollbar">
+            <div className="flex-1 overflow-y-auto px-5 pb-[calc(130px+env(safe-area-inset-bottom))] mt-6 no-scrollbar">
               <div className="relative flex items-center justify-center mb-6 h-12">
                 <input type="text" value={inquiryForm.customerName} onChange={(e) => setInquiryForm({...inquiryForm, customerName: e.target.value})} placeholder="고객명 입력" className="text-3xl font-serif font-bold text-center text-[#2C2724] bg-transparent outline-none w-full placeholder-[#DCD6CC]" />
                 <div className="absolute right-0 top-0 bottom-0 flex items-center justify-center p-1">
@@ -1404,7 +1404,7 @@
               <button onClick={handleSaveAlbum} className="text-[#8B7355] text-[15px] font-medium hover:text-[#6B5335] py-2">완료</button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 pb-[130px] mt-8 no-scrollbar">
+            <div className="flex-1 overflow-y-auto px-5 pb-[calc(130px+env(safe-area-inset-bottom))] mt-8 no-scrollbar">
               <input type="file" multiple={!albumForm.id} accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
               <div 
                 onClick={() => fileInputRef.current?.click()} 
@@ -1423,7 +1423,7 @@
               </div>
 
               <div className="flex gap-2 mb-6 justify-center">
-                {['전체', '착용샷', '실물', '기타'].map(cat => (
+                {['착용샷', '실물', '기타'].map(cat => (
                    <button key={cat} onClick={() => setAlbumForm({...albumForm, category: cat})} className={`flex-1 py-2.5 rounded-[8px] text-[13px] font-sans whitespace-nowrap transition-colors border shadow-sm ${albumForm.category === cat ? 'bg-[#8B7355] text-white border-[#8B7355] font-medium' : 'bg-white text-[#8A847E] border-[#E8E4DB]'}`}>
                      {cat}
                    </button>
