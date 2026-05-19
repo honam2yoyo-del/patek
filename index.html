@@ -46,14 +46,12 @@
   <!-- type="text/babel"을 통해 브라우저가 React 문법을 해석하게 합니다 -->
   <script type="text/babel" data-type="module">
     
-    // 파이어베이스 모듈 로드
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
     import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
     import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
     const { useState, useEffect, useRef } = React;
 
-    // --- 아이콘 컴포넌트 구현 ---
     const CalendarDays = ({size=24, strokeWidth=2, className=""}) => <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>;
     const Users = ({size=24, strokeWidth=2, className=""}) => <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
     const MessageSquare = ({size=24, strokeWidth=2, className=""}) => <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>;
@@ -91,9 +89,6 @@
       </svg>
     );
 
-    // ==========================================
-    // 🔴 Firebase 설정 (고객님 데이터베이스 연결 완료) 🔴
-    // ==========================================
     const YOUR_FIREBASE_CONFIG = {
       apiKey: "AIzaSyBAGzTOYqnVFysfHvKKAw7KNX1QOnEXWmU",
       authDomain: "mymoneyapp-e6ef9.firebaseapp.com",
@@ -115,14 +110,13 @@
          db = getFirestore(app);
       }
     } catch(e) {
-      console.warn("Firebase 초기화 안됨. 배포 시 설정을 추가하세요.", e);
+      console.warn("Firebase 초기화 안됨.", e);
     }
     
     const appId = (firebaseConfig && firebaseConfig.projectId) 
         ? firebaseConfig.projectId 
         : (typeof __app_id !== 'undefined' ? __app_id : 'patek-philippe-app');
 
-    // 헬퍼 함수
     const getNextDayStr = (dateStr) => {
       const [y, m, d] = dateStr.split('-').map(Number);
       const date = new Date(y, m - 1, d + 1);
@@ -152,7 +146,6 @@
       return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}(${days[d.getDay()]})`;
     };
 
-    // 이미지 압축 헬퍼 함수 (Base64 변환)
     const compressImage = (file) => {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -184,6 +177,13 @@
       });
     };
 
+    // Base64를 File 객체로 변환 (공유 시트를 통한 갤러리 저장용)
+    const base64ToFile = async (dataUrl, filename) => {
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      return new File([blob], filename, { type: blob.type });
+    };
+
     const CATEGORIES = [
       { id: 'yellow', label: '판매', color: 'bg-[#C29B44]', textColor: 'text-white', border: 'border-[#A38137]' },
       { id: 'pink', label: '결제변경', color: 'bg-[#A85858]', textColor: 'text-white', border: 'border-[#874545]' },
@@ -199,7 +199,6 @@
       { id: 'customer', label: '고객', badgeClass: 'bg-[#EBE9F0] text-[#786D8F]' },
     ];
 
-    // 고급 Alert 컴포넌트
     const CustomAlert = ({ message, onClose }) => {
       if (!message) return null;
       return (
@@ -215,19 +214,18 @@
       );
     };
 
-    // 고급 Confirm 컴포넌트 (삭제 시 확인용)
     const CustomConfirm = ({ message, onConfirm, onClose }) => {
       if (!message) return null;
       return (
         <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-6 animate-in fade-in duration-200" style={{ zIndex: 9999 }}>
           <div className="bg-[#FCFBF9] rounded-xl p-6 w-full max-w-[280px] shadow-2xl border border-[#E8E4DB] flex flex-col items-center animate-in zoom-in-95 duration-200 relative z-[111]">
             <div className="w-12 h-12 rounded-full bg-[#FFF5F5] border border-[#E8D8D8] flex items-center justify-center mb-4 text-[#A06C6C]">
-              <Info size={24} />
+              <Trash2 size={24} />
             </div>
             <p className="text-[#3A3532] text-[15px] font-sans text-center font-medium leading-relaxed mb-6 whitespace-pre-wrap">{message}</p>
             <div className="flex gap-3 w-full">
               <button onClick={onClose} className="flex-1 bg-white hover:bg-[#F2EFE8] text-[#8A847E] font-serif tracking-widest py-3 rounded-md transition-colors text-[13px] border border-[#E8E4DB]">취소</button>
-              <button onClick={onConfirm} className="flex-1 bg-[#3A3532] hover:bg-[#2A2522] text-[#F3EFE8] font-serif tracking-widest py-3 rounded-md transition-colors text-[13px] border border-[#2A2522]">확인</button>
+              <button onClick={onConfirm} className="flex-1 bg-[#FF3B30] hover:bg-[#D93025] text-white font-serif tracking-widest py-3 rounded-md transition-colors text-[13px] border border-[#D93025]">삭제</button>
             </div>
           </div>
         </div>
@@ -245,9 +243,9 @@
       const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null });
       const fileInputRef = useRef(null);
       
-      // 스와이프 상태
-      const [touchStart, setTouchStart] = useState(null);
-      const [touchEnd, setTouchEnd] = useState(null);
+      // 스와이프 삭제(Swipe-to-delete) 상태
+      const [swipedItemId, setSwipedItemId] = useState(null);
+      const touchState = useRef({ startX: 0, startY: 0, isScrolling: false });
 
       // --- DB Data States ---
       const [events, setEvents] = useState([]);
@@ -286,9 +284,6 @@
       const [albumForm, setAlbumForm] = useState(null);
       const [formData, setFormData] = useState({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'yellow' });
 
-      // ==========================================
-      // Firebase Authentication 연동
-      // ==========================================
       useEffect(() => {
         if (!auth) return;
         
@@ -345,9 +340,6 @@
         }
       };
 
-      // ==========================================
-      // Firestore 데이터 연동
-      // ==========================================
       useEffect(() => {
         if (!user || !isLoggedIn || !db || user.uid === 'local-test-user') return;
         const uId = user.uid;
@@ -371,41 +363,38 @@
         return () => { unsubEvents(); unsubCustomers(); unsubInquiries(); unsubTasks(); unsubAlbums(); };
       }, [user, isLoggedIn]);
 
-      // ==========================================
-      // 스와이프 제스처 이벤트
-      // ==========================================
-      const onTouchStart = (e) => {
-        setTouchEnd(null);
-        setTouchStart(e.targetTouches[0].clientX);
+      const handleTouchStartItem = (e) => {
+        touchState.current.startX = e.touches[0].clientX;
+        touchState.current.startY = e.touches[0].clientY;
+        touchState.current.isScrolling = false;
       };
 
-      const onTouchMove = (e) => {
-        setTouchEnd(e.targetTouches[0].clientX);
-      };
+      const handleTouchMoveItem = (e, id) => {
+        if (!touchState.current.startX) return;
+        const currentX = e.touches[0].clientX;
+        const currentY = e.touches[0].clientY;
+        const diffX = touchState.current.startX - currentX;
+        const diffY = Math.abs(touchState.current.startY - currentY);
 
-      const onTouchEnd = () => {
-        if (!touchStart || !touchEnd) return;
-        const distance = touchStart - touchEnd;
-        const isLeftSwipe = distance > 50; 
-        const isRightSwipe = distance < -50; 
-        
-        const tabsOrder = ['customer', 'inquiries', 'calendar', 'album', 'task'];
-        const currentIndex = tabsOrder.indexOf(activeTab);
-
-        if (isLeftSwipe && currentIndex < tabsOrder.length - 1) {
-          setActiveTab(tabsOrder[currentIndex + 1]);
+        if (diffY > 20) {
+          touchState.current.isScrolling = true;
+          return;
         }
-        if (isRightSwipe && currentIndex > 0) {
-          setActiveTab(tabsOrder[currentIndex - 1]);
+
+        if (!touchState.current.isScrolling) {
+          if (diffX > 40) {
+            setSwipedItemId(id);
+          } else if (diffX < -40 && swipedItemId === id) {
+            setSwipedItemId(null);
+          }
         }
-        
-        setTouchStart(null);
-        setTouchEnd(null);
       };
 
-      // ==========================================
+      const closeSwipe = () => {
+        if (swipedItemId) setSwipedItemId(null);
+      };
+
       // 공통 헬퍼 메서드
-      // ==========================================
       const getDaysInMonthFunc = (year, month) => new Date(year, month + 1, 0).getDate();
       const getFirstDayOfMonthFunc = (year, month) => new Date(year, month, 1).getDay();
       const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
@@ -417,17 +406,23 @@
         setIsAddModalOpen(true);
       };
 
-      // ==========================================
-      // 앨범 로직
-      // ==========================================
       const handleFileChange = (e) => {
-        const files = Array.from(e.target.files);
-        if (files.length > 10) {
+        const newFiles = Array.from(e.target.files);
+        const existingFiles = albumForm.files || [];
+        const totalFiles = [...existingFiles, ...newFiles];
+        if (totalFiles.length > 10) {
           setAlertMessage("최대 10장까지만 업로드 가능합니다.");
-          setAlbumForm({ ...albumForm, files: files.slice(0, 10) });
+          setAlbumForm({ ...albumForm, files: totalFiles.slice(0, 10) });
         } else {
-          setAlbumForm({ ...albumForm, files });
+          setAlbumForm({ ...albumForm, files: totalFiles });
         }
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      };
+
+      const removeFile = (index) => {
+        const newFiles = [...albumForm.files];
+        newFiles.splice(index, 1);
+        setAlbumForm({ ...albumForm, files: newFiles });
       };
 
       const handleSaveAlbum = async () => {
@@ -440,7 +435,7 @@
            
            if (user.uid !== 'local-test-user') {
              await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'albums', albumForm.id), {
-                category: albumForm.category,
+                category: albumForm.category === '전체' ? '기타' : albumForm.category,
                 title: albumForm.title, ref: albumForm.ref, memo: albumForm.memo, imageUrl: newImageUrl
              });
            }
@@ -457,7 +452,7 @@
           const promises = albumForm.files.map(async (file) => {
             const base64Url = await compressImage(file);
             const payload = {
-              imageUrl: base64Url, category: albumForm.category,
+              imageUrl: base64Url, category: albumForm.category === '전체' ? '기타' : albumForm.category,
               title: albumForm.title, ref: albumForm.ref, memo: albumForm.memo, date: new Date().toISOString().split('T')[0]
             };
             if (user.uid !== 'local-test-user') await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'albums'), payload);
@@ -475,32 +470,49 @@
         else setSelectedAlbumIds([...selectedAlbumIds, id]);
       };
 
-      const handleAlbumShare = async () => {
-        if (navigator.share) {
-          try {
-            await navigator.share({ title: 'Patek Philippe Album', text: `선택하신 ${selectedAlbumIds.length}장의 사진 공유`, url: window.location.href });
-            setSelectedAlbumIds([]);
-          } catch (error) { console.log("공유 취소 또는 오류", error); }
-        } else {
-          setAlertMessage(`선택하신 ${selectedAlbumIds.length}장의 사진을 공유합니다.\n(기기 공유창이 열립니다)`);
+      // 공유 또는 저장(네이티브 갤러리 저장 유도)
+      const handleShareOrSave = async () => {
+        if (selectedAlbumIds.length === 0) return;
+        setAlertMessage("사진을 준비 중입니다...");
+        
+        try {
+          const filesArray = [];
+          for (const id of selectedAlbumIds) {
+             const album = albums.find(a => a.id === id);
+             if (album && album.imageUrl) {
+               const file = await base64ToFile(album.imageUrl, `patek_${id}.jpg`);
+               filesArray.push(file);
+             }
+          }
+          
+          if (navigator.canShare && navigator.canShare({ files: filesArray })) {
+             setAlertMessage('');
+             await navigator.share({
+               files: filesArray,
+               title: 'Patek Philippe Album',
+               text: '선택하신 사진입니다.'
+             });
+             setSelectedAlbumIds([]);
+          } else {
+             throw new Error("File sharing not supported");
+          }
+        } catch (error) {
+          console.log("Share API error:", error);
+          // Fallback: 파일 다운로드
+          selectedAlbumIds.forEach(id => {
+            const album = albums.find(a => a.id === id);
+            if (album) {
+               const link = document.createElement('a');
+               link.href = album.imageUrl;
+               link.download = `patek_${id}.jpg`;
+               document.body.appendChild(link);
+               link.click();
+               document.body.removeChild(link);
+            }
+          });
+          setAlertMessage(`기본 다운로드 방식으로 사진을 저장했습니다.\n(갤러리 또는 파일 앱 확인)`);
           setSelectedAlbumIds([]);
         }
-      };
-      
-      const handleAlbumDownload = () => {
-        selectedAlbumIds.forEach(id => {
-          const album = albums.find(a => a.id === id);
-          if (album) {
-             const link = document.createElement('a');
-             link.href = album.imageUrl;
-             link.download = `patek_album_${id}.jpg`;
-             document.body.appendChild(link);
-             link.click();
-             document.body.removeChild(link);
-          }
-        });
-        setAlertMessage(`선택하신 ${selectedAlbumIds.length}장의 사진을 기기에 저장했습니다.`);
-        setSelectedAlbumIds([]);
       };
 
       const handleDeleteAlbum = () => {
@@ -517,9 +529,6 @@
         });
       };
 
-      // ==========================================
-      // 달력 로직
-      // ==========================================
       const handleSaveEvent = async () => {
         if (!formData.title.trim() || !formData.date) { setAlertMessage("일정 제목과 날짜를 확인해주세요."); return; }
         if (!user || !db) return;
@@ -540,12 +549,9 @@
         setFormData({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'yellow' });
       };
 
-      // ==========================================
-      // 로그인 스플래시 화면
-      // ==========================================
       if (!isLoggedIn) {
         return (
-          <div className="w-full h-[100dvh] bg-[#DCD6CC] flex justify-center font-sans">
+          <div className="w-full h-screen bg-[#DCD6CC] flex justify-center font-sans">
              <div className="w-full h-full max-w-md bg-[#FCFBF9] shadow-[0_0_50px_rgba(0,0,0,0.15)] flex flex-col items-center justify-center font-serif relative px-6">
                 <img src="./logo.png" alt="Patek Philippe" className="w-24 h-24 mb-6 object-contain" />
                 <h1 className="text-3xl font-serif text-[#3A3532] tracking-widest mb-16 text-center leading-snug">PATEK PHILIPPE</h1>
@@ -563,11 +569,6 @@
         );
       }
 
-      // ==========================================
-      // 각 탭별 화면 렌더링
-      // ==========================================
-
-      // --- 1. 달력 (Calendar) ---
       const renderCalendar = () => {
         const year = currentDate.getFullYear();
         const month = currentDate.getMonth();
@@ -590,7 +591,7 @@
         for(let i = 0; i < weekDates.length; i += 7) calendarWeeks.push(weekDates.slice(i, i + 7));
 
         return (
-          <div className="flex flex-col h-full bg-[#FCFBF9] relative font-serif">
+          <div className="flex flex-col h-full bg-[#FCFBF9] relative font-serif" onClick={closeSwipe}>
             <div className="flex flex-col items-center justify-center pt-[calc(env(safe-area-inset-top)+16px)] pb-4 relative z-20 shrink-0">
               <a href="https://www.patek.com/en" target="_blank" rel="noopener noreferrer">
                  <img src="./logo.png" alt="Brand Logo" className="w-16 h-16 mb-5 object-contain hover:opacity-100 transition-opacity cursor-pointer" />
@@ -609,21 +610,22 @@
               </div>
             </div>
 
-            <div className="flex-1 flex flex-col relative z-0">
+            <div className="flex-1 flex flex-col relative z-0 overflow-hidden">
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 overflow-hidden pb-10">
                 <img src="./logo.png" alt="Watermark Logo" className="w-[400px] h-[400px] opacity-[0.05] object-contain grayscale" />
               </div>
-              <div className="grid grid-cols-7 relative z-10 border-y border-[#E8E4DB] mx-5 shrink-0">
+              <div className="grid grid-cols-7 relative z-10 border-y border-[#E8E4DB] mx-5 shrink-0 bg-[#FCFBF9]">
                 {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => <div key={day} className={`py-4 text-center text-[13px] tracking-widest font-serif ${idx === 0 ? 'text-[#A06C6C]' : 'text-[#6B635C]'}`}>{day}</div>)}
               </div>
-              <div className="flex-1 overflow-y-auto px-5 pb-[80px] no-scrollbar relative z-0">
+              {/* 스크롤 가능한 달력 영역 */}
+              <div className="flex-1 overflow-y-auto px-5 pb-[130px] no-scrollbar relative z-0">
                 {calendarWeeks.map((wDates, wIdx) => {
                   let weekEvents = events.filter(e => { const eStart = e.date; const eEnd = e.endDate || e.date; return eStart <= wDates[6] && eEnd >= wDates[0]; });
                   weekEvents.sort((a, b) => { if (a.date !== b.date) return a.date.localeCompare(b.date); const aDur = new Date(a.endDate || a.date) - new Date(a.date); const bDur = new Date(b.endDate || b.date) - new Date(b.date); return bDur - aDur; });
                   const slots = []; const eventSlots = {};
                   weekEvents.forEach(e => {
                     const eStart = e.date; const eEnd = e.endDate || e.date; 
-                    for (let slotIdx = 0; slotIdx < 10; slotIdx++) { // 안전한 가드
+                    for (let slotIdx = 0; slotIdx < 10; slotIdx++) { 
                       if (!slots[slotIdx]) slots[slotIdx] = []; let isFree = true;
                       const effectiveStart = eStart < wDates[0] ? wDates[0] : eStart; const effectiveEnd = eEnd > wDates[6] ? wDates[6] : eEnd;
                       for (let currStr = effectiveStart; currStr <= effectiveEnd; currStr = getNextDayStr(currStr)) { if (slots[slotIdx].includes(currStr)) { isFree = false; break; } }
@@ -678,14 +680,13 @@
               </div>
             </div>
             
-            <button onClick={() => { setFormData({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'yellow' }); setIsAddModalOpen(true); }} className="absolute bottom-[16px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
+            <button onClick={() => { setFormData({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'yellow' }); setIsAddModalOpen(true); }} className="absolute bottom-[110px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
               <Plus size={26} strokeWidth={1.2} />
             </button>
           </div>
         );
       };
 
-      // --- 2. 고객 (Customer) ---
       const renderCustomerTab = () => {
         const safeQuery = String(searchQuery || '').toLowerCase().replace(/[\s-]/g, '');
         
@@ -705,8 +706,21 @@
             if (sortOrder === 'qty_asc') return aQty - bQty; return 0;
         });
 
+        const handleDeleteCustomer = (e, id) => {
+          e.stopPropagation();
+          setConfirmDialog({
+            isOpen: true,
+            message: "해당 고객을 삭제하시겠습니까?",
+            onConfirm: async () => {
+              if (user.uid !== 'local-test-user') await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'customers', id));
+              setSwipedItemId(null);
+              setConfirmDialog({ isOpen: false, message: '', onConfirm: null });
+            }
+          });
+        };
+
         return (
-          <div className="flex flex-col h-full bg-[#FCFBF9] font-serif relative">
+          <div className="flex flex-col h-full bg-[#FCFBF9] font-serif relative" onClick={closeSwipe}>
             <div className="flex flex-col items-center pt-[calc(env(safe-area-inset-top)+16px)] pb-4 relative z-20 shrink-0">
               <a href="https://www.patek.com/en" target="_blank" rel="noopener noreferrer">
                 <img src="./logo.png" alt="Patek Philippe" className="w-16 h-16 mb-3 object-contain cursor-pointer" />
@@ -739,32 +753,49 @@
               <div className="text-center pr-2">Amount</div>
             </div>
 
-            <div className="flex-1 overflow-y-auto no-scrollbar pb-[80px] relative">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar pb-[130px] relative">
               {filteredAndSorted.map(customer => {
                 const totalQty = customer.purchases.reduce((sum, p) => sum + (Number(p.qty) || 0), 0);
                 const totalAmount = customer.purchases.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+                const isSwiped = swipedItemId === customer.id;
+
                 return (
-                  <div key={customer.id} onClick={() => { setCustomerForm(JSON.parse(JSON.stringify(customer))); setIsCustomerModalOpen(true); }} className="grid grid-cols-[1.5fr_1fr_1.5fr] px-5 py-4 border-b border-[#F2EFE8] bg-white items-center cursor-pointer hover:bg-[#FDFBF7] transition-colors">
-                    <div className="flex items-center justify-center gap-2 w-full pl-2">
-                      <div className="w-7 h-7 rounded-full border border-[#DCD6CC] bg-[#FCFBF9] flex items-center justify-center text-[#8A847E] shrink-0"><Users size={14} /></div>
-                      <span className="font-sans font-medium text-[#2C2724] text-sm truncate w-[60px] text-center">{customer.name}</span>
+                  <div key={customer.id} className="relative bg-white border-b border-[#F2EFE8] overflow-hidden">
+                    {/* 삭제 버튼 배경 */}
+                    <div className="absolute right-0 top-0 bottom-0 w-[70px] bg-[#FF3B30] flex items-center justify-center text-white cursor-pointer" onClick={(e) => handleDeleteCustomer(e, customer.id)}>
+                      <Trash2 size={24} />
                     </div>
-                    <div className="text-center font-sans text-[#6B635C] text-[13px]">{totalQty}PCS</div>
-                    <div className="text-center font-serif text-[#3A3532] text-[14px]">₩{totalAmount.toLocaleString()}</div>
+                    {/* 컨텐츠 (스와이프 시 이동) */}
+                    <div 
+                      className="grid grid-cols-[1.5fr_1fr_1.5fr] px-5 py-4 bg-white items-center cursor-pointer hover:bg-[#FDFBF7] transition-transform duration-200"
+                      style={{ transform: isSwiped ? 'translateX(-70px)' : 'translateX(0px)' }}
+                      onTouchStart={(e) => handleTouchStartItem(e, customer.id)}
+                      onTouchMove={(e) => handleTouchMoveItem(e, customer.id)}
+                      onClick={(e) => {
+                         if(swipedItemId) { e.stopPropagation(); setSwipedItemId(null); }
+                         else { setCustomerForm(JSON.parse(JSON.stringify(customer))); setIsCustomerModalOpen(true); }
+                      }}
+                    >
+                      <div className="flex items-center justify-center gap-2 w-full pl-2 pointer-events-none">
+                        <div className="w-7 h-7 rounded-full border border-[#DCD6CC] bg-[#FCFBF9] flex items-center justify-center text-[#8A847E] shrink-0"><Users size={14} /></div>
+                        <span className="font-sans font-medium text-[#2C2724] text-sm truncate w-[60px] text-center">{customer.name}</span>
+                      </div>
+                      <div className="text-center font-sans text-[#6B635C] text-[13px] pointer-events-none">{totalQty}PCS</div>
+                      <div className="text-center font-serif text-[#3A3532] text-[14px] pointer-events-none">₩{totalAmount.toLocaleString()}</div>
+                    </div>
                   </div>
                 );
               })}
               {filteredAndSorted.length === 0 && <div className="flex justify-center items-center h-32 text-[#A8A29D] font-serif">검색된 고객이 없습니다.</div>}
             </div>
 
-            <button onClick={() => { setCustomerForm({ id: '', name: '', birthDate: '', phone: '', job: '', notes: '', purchases: [] }); setIsCustomerModalOpen(true); }} className="absolute bottom-[16px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
+            <button onClick={() => { setCustomerForm({ id: '', name: '', birthDate: '', phone: '', job: '', notes: '', purchases: [] }); setIsCustomerModalOpen(true); }} className="absolute bottom-[110px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
               <Plus size={26} strokeWidth={1.2} />
             </button>
           </div>
         );
       };
 
-      // --- 3. 문의사항 (Inquiries/Wish List) ---
       const renderInquiriesTab = () => {
         const safeQuery = String(inquirySearchQuery || '').toLowerCase().replace(/[\s-]/g, '');
         
@@ -780,8 +811,21 @@
         else if (inquirySortOrder === 'date_desc') filteredInquiries.sort((a, b) => b.date.localeCompare(a.date));
         else if (inquirySortOrder === 'name_asc') filteredInquiries.sort((a, b) => a.customerName.localeCompare(b.customerName));
 
+        const handleDeleteInquiry = (e, id) => {
+          e.stopPropagation();
+          setConfirmDialog({
+            isOpen: true,
+            message: "해당 문의사항을 삭제하시겠습니까?",
+            onConfirm: async () => {
+              if (user.uid !== 'local-test-user') await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'inquiries', id));
+              setSwipedItemId(null);
+              setConfirmDialog({ isOpen: false, message: '', onConfirm: null });
+            }
+          });
+        };
+
         return (
-          <div className="flex flex-col h-full bg-[#FCFBF9] font-serif relative">
+          <div className="flex flex-col h-full bg-[#FCFBF9] font-serif relative" onClick={closeSwipe}>
             <div className="flex flex-col items-center pt-[calc(env(safe-area-inset-top)+16px)] pb-4 relative z-20 shrink-0">
               <a href="https://www.patek.com/en" target="_blank" rel="noopener noreferrer">
                 <img src="./logo.png" alt="Patek Philippe" className="w-16 h-16 mb-3 object-contain cursor-pointer" />
@@ -814,25 +858,43 @@
               <div className="text-center">Type</div>
             </div>
 
-            <div className="flex-1 overflow-y-auto no-scrollbar pb-[80px] relative">
-              {filteredInquiries.map(inquiry => (
-                <div key={inquiry.id} onClick={() => { setInquiryForm(JSON.parse(JSON.stringify(inquiry))); setIsInquiryModalOpen(true); }} className="grid grid-cols-[1.2fr_1fr_1fr] px-5 py-4 border-b border-[#F2EFE8] bg-white items-center cursor-pointer hover:bg-[#FDFBF7] transition-colors">
-                  <div className="text-center font-sans text-[#6B635C] text-[13px]">{inquiry.date}</div>
-                  <div className="text-center font-sans font-medium text-[#2C2724] text-[14px]">{inquiry.customerName}</div>
-                  <div className="text-center font-sans text-[#6B635C] text-[13px]">{inquiry.type}</div>
-                </div>
-              ))}
+            <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar pb-[130px] relative">
+              {filteredInquiries.map(inquiry => {
+                const isSwiped = swipedItemId === inquiry.id;
+                return (
+                  <div key={inquiry.id} className="relative bg-white border-b border-[#F2EFE8] overflow-hidden">
+                     {/* 삭제 버튼 배경 */}
+                     <div className="absolute right-0 top-0 bottom-0 w-[70px] bg-[#FF3B30] flex items-center justify-center text-white cursor-pointer" onClick={(e) => handleDeleteInquiry(e, inquiry.id)}>
+                        <Trash2 size={24} />
+                     </div>
+                     {/* 컨텐츠 (스와이프 시 이동) */}
+                     <div 
+                        className="grid grid-cols-[1.2fr_1fr_1fr] px-5 py-4 bg-white items-center cursor-pointer hover:bg-[#FDFBF7] transition-transform duration-200"
+                        style={{ transform: isSwiped ? 'translateX(-70px)' : 'translateX(0px)' }}
+                        onTouchStart={(e) => handleTouchStartItem(e, inquiry.id)}
+                        onTouchMove={(e) => handleTouchMoveItem(e, inquiry.id)}
+                        onClick={(e) => {
+                           if(swipedItemId) { e.stopPropagation(); setSwipedItemId(null); }
+                           else { setInquiryForm(JSON.parse(JSON.stringify(inquiry))); setIsInquiryModalOpen(true); }
+                        }}
+                     >
+                        <div className="text-center font-sans text-[#6B635C] text-[13px] pointer-events-none">{inquiry.date}</div>
+                        <div className="text-center font-sans font-medium text-[#2C2724] text-[14px] pointer-events-none">{inquiry.customerName}</div>
+                        <div className="text-center font-sans text-[#6B635C] text-[13px] pointer-events-none">{inquiry.type}</div>
+                     </div>
+                  </div>
+                );
+              })}
               {filteredInquiries.length === 0 && <div className="flex justify-center items-center h-32 text-[#A8A29D] font-serif">검색된 정보가 없습니다.</div>}
             </div>
 
-            <button onClick={() => { setInquiryForm({ id: '', date: new Date().toISOString().split('T')[0], type: '신규', customerName: '', birthDate: '', customerPhone: '', job: '', notes: '', memo: '', items: [] }); setIsInquiryModalOpen(true); }} className="absolute bottom-[16px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
+            <button onClick={() => { setInquiryForm({ id: '', date: new Date().toISOString().split('T')[0], type: '신규', customerName: '', birthDate: '', customerPhone: '', job: '', notes: '', memo: '', items: [] }); setIsInquiryModalOpen(true); }} className="absolute bottom-[110px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
               <Plus size={26} strokeWidth={1.2} />
             </button>
           </div>
         );
       };
 
-      // --- 4. 앨범 (Album) ---
       const renderAlbumTab = () => {
         let filteredAlbums = albums.filter(a => albumFilter === '전체' || a.category === albumFilter);
         
@@ -847,7 +909,7 @@
         }
 
         return (
-          <div className="flex flex-col h-full bg-[#FCFBF9] font-serif relative">
+          <div className="flex flex-col h-full bg-[#FCFBF9] font-serif relative" onClick={closeSwipe}>
             <div className="flex flex-col items-center pt-[calc(env(safe-area-inset-top)+16px)] pb-4 relative z-20 shrink-0">
               <a href="https://www.patek.com/en" target="_blank" rel="noopener noreferrer">
                 <img src="./logo.png" alt="Patek Philippe" className="w-16 h-16 mb-2 object-contain cursor-pointer hover:opacity-80 transition-opacity" />
@@ -873,7 +935,7 @@
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto no-scrollbar pb-[80px] relative px-5 pt-2">
+            <div className="flex-1 overflow-y-auto no-scrollbar pb-[130px] relative px-5 pt-2">
               <div className="grid grid-cols-2 gap-x-3 gap-y-4">
                 {filteredAlbums.map(album => {
                   const isSelected = selectedAlbumIds.includes(album.id);
@@ -890,7 +952,7 @@
                       <div className="relative w-full aspect-[4/3] bg-[#F2EFE8]">
                         <img src={album.imageUrl} alt={album.title} className="w-full h-full object-cover" />
                         <div className="absolute top-2 left-2 px-2.5 py-1 bg-white/95 backdrop-blur-sm rounded-md text-[10px] text-[#4A443F] font-bold shadow-sm">{album.category}</div>
-                        <button className="absolute top-2 right-2 w-7 h-7 bg-white/95 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm text-[#4A443F] hover:text-[#8B7355] transition-colors" onClick={(e) => { e.stopPropagation(); handleAlbumShare(); }}>
+                        <button className="absolute top-2 right-2 w-7 h-7 bg-white/95 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm text-[#4A443F] hover:text-[#8B7355] transition-colors" onClick={(e) => { e.stopPropagation(); toggleAlbumSelection(album.id); handleShareOrSave(); }}>
                            <Share2Icon size={13} strokeWidth={2.5} />
                         </button>
                       </div>
@@ -911,17 +973,17 @@
             </div>
 
             {selectedAlbumIds.length > 0 && (
-              <div className="absolute bottom-0 left-0 right-0 bg-[#3A3532] text-white px-6 py-4 flex justify-between items-center z-40 animate-in slide-in-from-bottom-5">
+              <div className="absolute bottom-[96px] left-0 right-0 bg-[#3A3532] text-white px-6 py-4 flex justify-between items-center z-40 animate-in slide-in-from-bottom-5">
                 <div className="flex items-center gap-3">
                    <button onClick={() => setSelectedAlbumIds([])} className="text-[#DCD6CC] hover:text-white transition-colors"><X size={20} /></button>
                    <span className="font-sans font-bold text-[13px]">{selectedAlbumIds.length}장 선택됨</span>
                 </div>
                 <div className="flex gap-6">
-                   <button onClick={handleAlbumShare} className="flex flex-col items-center gap-1 hover:text-[#DCD6CC] transition-colors">
+                   <button onClick={handleShareOrSave} className="flex flex-col items-center gap-1 hover:text-[#DCD6CC] transition-colors">
                      <Share2Icon size={20} />
                      <span className="text-[10px] font-sans">공유</span>
                    </button>
-                   <button onClick={handleAlbumDownload} className="flex flex-col items-center gap-1 hover:text-[#DCD6CC] transition-colors">
+                   <button onClick={handleShareOrSave} className="flex flex-col items-center gap-1 hover:text-[#DCD6CC] transition-colors">
                      <DownloadIcon size={20} />
                      <span className="text-[10px] font-sans">저장</span>
                    </button>
@@ -932,10 +994,10 @@
             {selectedAlbumIds.length === 0 && (
               <button 
                 onClick={() => {
-                  setAlbumForm({ id: '', files: [], category: '착용샷', title: '', ref: '', memo: '' });
+                  setAlbumForm({ id: '', files: [], category: '전체', title: '', ref: '', memo: '' });
                   setIsAlbumModalOpen(true);
                 }}
-                className="absolute bottom-[16px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]"
+                className="absolute bottom-[110px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]"
               >
                 <Plus size={26} strokeWidth={1.2} />
               </button>
@@ -944,7 +1006,6 @@
         );
       };
 
-      // --- 5. 업무 (Tasks) ---
       const renderTaskTab = () => {
         let filteredTasks = tasks.filter(t => taskFilter === '전체' || t.category === taskFilter);
         if (taskSortOrder === 'date_desc') filteredTasks.sort((a,b) => b.date.localeCompare(a.date));
@@ -963,7 +1024,7 @@
         };
 
         return (
-          <div className="flex flex-col h-full bg-[#FCFBF9] font-serif relative">
+          <div className="flex flex-col h-full bg-[#FCFBF9] font-serif relative" onClick={closeSwipe}>
             <div className="flex flex-col items-center pt-[calc(env(safe-area-inset-top)+16px)] pb-4 relative z-20 shrink-0">
               <a href="https://www.patek.com/en" target="_blank" rel="noopener noreferrer">
                 <img src="./logo.png" alt="Patek Philippe" className="w-16 h-16 mb-3 object-contain cursor-pointer hover:opacity-80 transition-opacity" />
@@ -994,7 +1055,7 @@
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto no-scrollbar pb-[80px] relative">
+            <div className="flex-1 overflow-y-auto no-scrollbar pb-[130px] relative">
               <div className="bg-white mx-5 border border-[#E8E4DB] rounded-[10px] shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
                 {filteredTasks.map((t, idx) => {
                   const catInfo = TASK_CATEGORIES.find(c => c.label === t.category) || TASK_CATEGORIES[0];
@@ -1020,16 +1081,12 @@
               </div>
             </div>
 
-            <button onClick={() => { setTaskForm({ id: '', date: new Date().toISOString().split('T')[0], category: '매장', title: '', memo: '' }); setIsTaskModalOpen(true); }} className="absolute bottom-[16px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
+            <button onClick={() => { setTaskForm({ id: '', date: new Date().toISOString().split('T')[0], category: '매장', title: '', memo: '' }); setIsTaskModalOpen(true); }} className="absolute bottom-[110px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
               <Plus size={26} strokeWidth={1.2} />
             </button>
           </div>
         );
       };
-
-      // ==========================================
-      // 공통 모달 렌더링 함수들
-      // ==========================================
 
       const renderAddModal = () => {
         if (!isAddModalOpen) return null;
@@ -1111,7 +1168,6 @@
         );
       };
 
-      // --- 고객 모달 ---
       const renderCustomerModal = () => {
         if (!isCustomerModalOpen || !customerForm) return null;
 
@@ -1172,7 +1228,7 @@
               <button onClick={handleSaveCustomer} className="text-[#8B7355] text-[15px] font-medium hover:text-[#6B5335] py-2">저장</button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 pb-[80px] mt-6 no-scrollbar">
+            <div className="flex-1 overflow-y-auto px-5 pb-[130px] mt-6 no-scrollbar">
               <div className="relative flex items-center justify-center mb-6 h-12">
                 <input type="text" value={customerForm.name} onChange={(e) => setCustomerForm({...customerForm, name: e.target.value})} placeholder="고객명 입력" className="text-3xl font-serif font-bold text-center text-[#2C2724] bg-transparent outline-none w-full placeholder-[#DCD6CC]" />
                 <div className="absolute right-0 top-0 bottom-0 flex items-center justify-center p-1">
@@ -1298,7 +1354,7 @@
               <button onClick={handleSaveInquiry} className="text-[#8B7355] text-[15px] font-medium hover:text-[#6B5335] py-2">저장</button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 pb-[80px] mt-6 no-scrollbar">
+            <div className="flex-1 overflow-y-auto px-5 pb-[130px] mt-6 no-scrollbar">
               <div className="relative flex items-center justify-center mb-6 h-12">
                 <input type="text" value={inquiryForm.customerName} onChange={(e) => setInquiryForm({...inquiryForm, customerName: e.target.value})} placeholder="고객명 입력" className="text-3xl font-serif font-bold text-center text-[#2C2724] bg-transparent outline-none w-full placeholder-[#DCD6CC]" />
                 <div className="absolute right-0 top-0 bottom-0 flex items-center justify-center p-1">
@@ -1381,18 +1437,6 @@
       const renderAlbumModal = () => {
         if (!isAlbumModalOpen || !albumForm) return null;
 
-        const handleDeleteAlbum = () => {
-          setConfirmDialog({
-             isOpen: true,
-             message: "이 사진을\n삭제하시겠습니까?",
-             onConfirm: async () => {
-                if (user.uid !== 'local-test-user') await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'albums', albumForm.id));
-                setIsAlbumModalOpen(false); setAlbumForm(null);
-                setConfirmDialog({ isOpen: false, message: '', onConfirm: null });
-             }
-          });
-        };
-
         return (
           <div className="absolute inset-0 bg-[#FCFBF9] z-[100] flex flex-col font-sans animate-in slide-in-from-bottom-5">
             <div className="flex justify-between items-center px-5 pt-8 pb-4 bg-[#FCFBF9] sticky top-0 z-20 shrink-0">
@@ -1404,26 +1448,39 @@
               <button onClick={handleSaveAlbum} className="text-[#8B7355] text-[15px] font-medium hover:text-[#6B5335] py-2">완료</button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 pb-[80px] mt-8 no-scrollbar">
+            <div className="flex-1 overflow-y-auto px-5 pb-[130px] mt-8 no-scrollbar">
               <input type="file" multiple={!albumForm.id} accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
-              <div 
-                onClick={() => fileInputRef.current?.click()} 
-                className="border-[1.5px] border-dashed border-[#C2BDB5] rounded-[14px] p-2 flex flex-col items-center justify-center cursor-pointer hover:bg-[#FDFBF7] transition-colors mb-6 h-[180px] overflow-hidden"
-              >
+              
+              <div className="flex overflow-x-auto gap-3 no-scrollbar mb-6 pb-2 px-1">
                 {albumForm.files && albumForm.files.length > 0 ? (
-                  <p className="text-[#8B7355] font-medium font-sans text-[13px]">{albumForm.files.length}장 선택됨</p>
+                  albumForm.files.map((file, idx) => {
+                    const url = URL.createObjectURL(file);
+                    return (
+                      <div key={idx} className="relative w-28 h-28 shrink-0 rounded-[14px] overflow-hidden shadow-sm border border-[#E8E4DB]">
+                        <img src={url} className="w-full h-full object-cover" alt="preview" onLoad={() => URL.revokeObjectURL(url)} />
+                        <button onClick={(e) => { e.stopPropagation(); removeFile(idx); }} className="absolute top-1.5 right-1.5 bg-black/60 text-white rounded-full p-1"><X size={14} /></button>
+                      </div>
+                    );
+                  })
                 ) : albumForm.id ? (
-                  <img src={albumForm.imageUrl} className="h-full w-full object-contain rounded-[10px]" alt="preview" />
-                ) : (
-                  <>
-                    <CameraIcon size={44} className="text-[#8B7355] mb-3" strokeWidth={1.5} />
-                    <p className="text-[#8A847E] font-sans text-[13px]">사진을 선택하거나 촬영하세요</p>
-                  </>
+                  <div className="relative w-full h-[180px] shrink-0 rounded-[14px] overflow-hidden shadow-sm border border-[#E8E4DB]">
+                     <img src={albumForm.imageUrl} className="h-full w-full object-contain bg-[#FDFBF7]" alt="preview" />
+                  </div>
+                ) : null}
+                
+                {(!albumForm.id && (!albumForm.files || albumForm.files.length < 10)) && (
+                  <div 
+                    onClick={() => fileInputRef.current?.click()} 
+                    className={`shrink-0 border-[1.5px] border-dashed border-[#C2BDB5] rounded-[14px] flex flex-col items-center justify-center cursor-pointer hover:bg-[#FDFBF7] transition-colors ${albumForm.files && albumForm.files.length > 0 ? 'w-28 h-28' : 'w-full h-[180px]'}`}
+                  >
+                    <CameraIcon size={albumForm.files && albumForm.files.length > 0 ? 28 : 44} className="text-[#8B7355] mb-2" strokeWidth={1.5} />
+                    <p className="text-[#8A847E] font-sans text-[12px] text-center">추가</p>
+                  </div>
                 )}
               </div>
 
               <div className="flex gap-2 mb-6 justify-center">
-                {['착용샷', '실물', '기타'].map(cat => (
+                {['전체', '착용샷', '실물', '기타'].map(cat => (
                    <button key={cat} onClick={() => setAlbumForm({...albumForm, category: cat})} className={`flex-1 py-2.5 rounded-[8px] text-[13px] font-sans whitespace-nowrap transition-colors border shadow-sm ${albumForm.category === cat ? 'bg-[#8B7355] text-white border-[#8B7355] font-medium' : 'bg-white text-[#8A847E] border-[#E8E4DB]'}`}>
                      {cat}
                    </button>
@@ -1519,12 +1576,11 @@
         );
       };
 
-      // --- 최종 렌더 ---
       return (
-        <div className="w-full h-[100dvh] bg-[#DCD6CC] flex justify-center font-sans">
+        <div className="w-full h-screen bg-[#DCD6CC] flex justify-center font-sans">
           <div 
              className="w-full h-full max-w-md bg-[#FCFBF9] shadow-[0_0_50px_rgba(0,0,0,0.15)] relative flex flex-col overflow-hidden"
-             onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
+             onClick={closeSwipe}
           >
             
             <div className="flex-1 relative flex flex-col overflow-hidden">
@@ -1536,35 +1592,35 @@
             </div>
 
             {/* Bottom Navigation */}
-            <div className="w-full h-[84px] bg-[#FCFBF9] border-t border-[#E8E4DB] grid grid-cols-5 px-1 pb-[env(safe-area-inset-bottom)] za-inset-bottom)] z-30 shrink-0">
-              <button onClick={() => setActiveTab('customer')} className={`flex flex-col items-center justify-center space-y-1.5 transition-colors relative ${activeTab === 'customer' ? 'text-[#8B7355]' : 'text-[#A8A29D] hover:text-[#7A746F]'}`}>
-                {activeTab === 'customer' && <div className="absolute top-0 w-8 h-[2px] bg-[#8B7355]"></div>}
-                <Users size={22} strokeWidth={activeTab === 'customer' ? 1.5 : 1} />
-                <span className="text-[10px] font-serif tracking-widest mt-1">고객</span>
+            <div className="absolute bottom-0 w-full h-[96px] bg-[#FCFBF9] border-t border-[#E8E4DB] grid grid-cols-5 px-1 pb-[calc(env(safe-area-inset-bottom)+10px)] pt-3 z-30 shrink-0">
+              <button onClick={() => setActiveTab('customer')} className={`flex flex-col items-center justify-start space-y-1.5 transition-colors relative ${activeTab === 'customer' ? 'text-[#8B7355]' : 'text-[#A8A29D] hover:text-[#7A746F]'}`}>
+                {activeTab === 'customer' && <div className="absolute -top-3 w-10 h-[3px] bg-[#8B7355]"></div>}
+                <Users size={28} strokeWidth={activeTab === 'customer' ? 1.5 : 1.2} />
+                <span className="text-[12px] font-serif tracking-widest mt-1">고객</span>
               </button>
               
-              <button onClick={() => setActiveTab('inquiries')} className={`flex flex-col items-center justify-center space-y-1.5 transition-colors relative ${activeTab === 'inquiries' ? 'text-[#8B7355]' : 'text-[#A8A29D] hover:text-[#7A746F]'}`}>
-                {activeTab === 'inquiries' && <div className="absolute top-0 w-8 h-[2px] bg-[#8B7355]"></div>}
-                <MessageSquare size={22} strokeWidth={activeTab === 'inquiries' ? 1.5 : 1} />
-                <span className="text-[10px] font-serif tracking-widest mt-1">문의사항</span>
+              <button onClick={() => setActiveTab('inquiries')} className={`flex flex-col items-center justify-start space-y-1.5 transition-colors relative ${activeTab === 'inquiries' ? 'text-[#8B7355]' : 'text-[#A8A29D] hover:text-[#7A746F]'}`}>
+                {activeTab === 'inquiries' && <div className="absolute -top-3 w-10 h-[3px] bg-[#8B7355]"></div>}
+                <MessageSquare size={28} strokeWidth={activeTab === 'inquiries' ? 1.5 : 1.2} />
+                <span className="text-[12px] font-serif tracking-widest mt-1">문의사항</span>
               </button>
               
-              <button onClick={() => setActiveTab('calendar')} className={`flex flex-col items-center justify-center space-y-1.5 transition-colors relative ${activeTab === 'calendar' ? 'text-[#8B7355]' : 'text-[#A8A29D] hover:text-[#7A746F]'}`}>
-                {activeTab === 'calendar' && <div className="absolute top-0 w-8 h-[2px] bg-[#8B7355]"></div>}
-                <CalendarDays size={22} strokeWidth={activeTab === 'calendar' ? 1.5 : 1} />
-                <span className="text-[10px] font-serif tracking-widest mt-1">달력</span>
+              <button onClick={() => setActiveTab('calendar')} className={`flex flex-col items-center justify-start space-y-1.5 transition-colors relative ${activeTab === 'calendar' ? 'text-[#8B7355]' : 'text-[#A8A29D] hover:text-[#7A746F]'}`}>
+                {activeTab === 'calendar' && <div className="absolute -top-3 w-10 h-[3px] bg-[#8B7355]"></div>}
+                <CalendarDays size={28} strokeWidth={activeTab === 'calendar' ? 1.5 : 1.2} />
+                <span className="text-[12px] font-serif tracking-widest mt-1">달력</span>
               </button>
 
-              <button onClick={() => setActiveTab('album')} className={`flex flex-col items-center justify-center space-y-1.5 transition-colors relative ${activeTab === 'album' ? 'text-[#8B7355]' : 'text-[#A8A29D] hover:text-[#7A746F]'}`}>
-                {activeTab === 'album' && <div className="absolute top-0 w-8 h-[2px] bg-[#8B7355]"></div>}
-                <ImageIcon size={22} strokeWidth={activeTab === 'album' ? 1.5 : 1} />
-                <span className="text-[10px] font-serif tracking-widest mt-1">앨범</span>
+              <button onClick={() => setActiveTab('album')} className={`flex flex-col items-center justify-start space-y-1.5 transition-colors relative ${activeTab === 'album' ? 'text-[#8B7355]' : 'text-[#A8A29D] hover:text-[#7A746F]'}`}>
+                {activeTab === 'album' && <div className="absolute -top-3 w-10 h-[3px] bg-[#8B7355]"></div>}
+                <ImageIcon size={28} strokeWidth={activeTab === 'album' ? 1.5 : 1.2} />
+                <span className="text-[12px] font-serif tracking-widest mt-1">앨범</span>
               </button>
 
-              <button onClick={() => setActiveTab('task')} className={`flex flex-col items-center justify-center space-y-1.5 transition-colors relative ${activeTab === 'task' ? 'text-[#8B7355]' : 'text-[#A8A29D] hover:text-[#7A746F]'}`}>
-                {activeTab === 'task' && <div className="absolute top-0 w-8 h-[2px] bg-[#8B7355]"></div>}
-                <Briefcase size={22} strokeWidth={activeTab === 'task' ? 1.5 : 1} />
-                <span className="text-[10px] font-serif tracking-widest mt-1">업무</span>
+              <button onClick={() => setActiveTab('task')} className={`flex flex-col items-center justify-start space-y-1.5 transition-colors relative ${activeTab === 'task' ? 'text-[#8B7355]' : 'text-[#A8A29D] hover:text-[#7A746F]'}`}>
+                {activeTab === 'task' && <div className="absolute -top-3 w-10 h-[3px] bg-[#8B7355]"></div>}
+                <Briefcase size={28} strokeWidth={activeTab === 'task' ? 1.5 : 1.2} />
+                <span className="text-[12px] font-serif tracking-widest mt-1">업무</span>
               </button>
             </div>
 
