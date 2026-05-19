@@ -376,6 +376,7 @@
         const diffX = touchState.current.startX - currentX;
         const diffY = Math.abs(touchState.current.startY - currentY);
 
+        // 상하 스크롤이 더 크면 스와이프 무시
         if (diffY > 20) {
           touchState.current.isScrolling = true;
           return;
@@ -470,10 +471,9 @@
         else setSelectedAlbumIds([...selectedAlbumIds, id]);
       };
 
-      // 공유 또는 저장(네이티브 갤러리 저장 유도)
+      // 공유 또는 저장 (모바일 네이티브 창 띄우기)
       const handleShareOrSave = async () => {
         if (selectedAlbumIds.length === 0) return;
-        setAlertMessage("사진을 준비 중입니다...");
         
         try {
           const filesArray = [];
@@ -486,7 +486,6 @@
           }
           
           if (navigator.canShare && navigator.canShare({ files: filesArray })) {
-             setAlertMessage('');
              await navigator.share({
                files: filesArray,
                title: 'Patek Philippe Album',
@@ -494,11 +493,16 @@
              });
              setSelectedAlbumIds([]);
           } else {
-             throw new Error("File sharing not supported");
+             throw new Error("공유/저장을 지원하지 않는 브라우저입니다.");
           }
         } catch (error) {
+          // 사용자가 공유 창에서 취소를 누른 경우 에러 무시
+          if (error.name === 'AbortError' || (error.message && error.message.includes('canceled'))) {
+             return;
+          }
           console.log("Share API error:", error);
-          // Fallback: 파일 다운로드
+          
+          // 브라우저에서 지원하지 않는 경우 일반 다운로드 실행 (Fallback)
           selectedAlbumIds.forEach(id => {
             const album = albums.find(a => a.id === id);
             if (album) {
@@ -617,8 +621,9 @@
               <div className="grid grid-cols-7 relative z-10 border-y border-[#E8E4DB] mx-5 shrink-0 bg-[#FCFBF9]">
                 {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => <div key={day} className={`py-4 text-center text-[13px] tracking-widest font-serif ${idx === 0 ? 'text-[#A06C6C]' : 'text-[#6B635C]'}`}>{day}</div>)}
               </div>
-              {/* 스크롤 가능한 달력 영역 */}
-              <div className="flex-1 overflow-y-auto px-5 pb-[130px] no-scrollbar relative z-0">
+              
+              {/* 달력 스크롤 영역 */}
+              <div className="flex-1 overflow-y-auto px-5 pb-8 no-scrollbar relative z-0">
                 {calendarWeeks.map((wDates, wIdx) => {
                   let weekEvents = events.filter(e => { const eStart = e.date; const eEnd = e.endDate || e.date; return eStart <= wDates[6] && eEnd >= wDates[0]; });
                   weekEvents.sort((a, b) => { if (a.date !== b.date) return a.date.localeCompare(b.date); const aDur = new Date(a.endDate || a.date) - new Date(a.date); const bDur = new Date(b.endDate || b.date) - new Date(b.date); return bDur - aDur; });
@@ -680,7 +685,7 @@
               </div>
             </div>
             
-            <button onClick={() => { setFormData({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'yellow' }); setIsAddModalOpen(true); }} className="absolute bottom-[110px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
+            <button onClick={() => { setFormData({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'yellow' }); setIsAddModalOpen(true); }} className="absolute bottom-[24px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
               <Plus size={26} strokeWidth={1.2} />
             </button>
           </div>
@@ -753,7 +758,7 @@
               <div className="text-center pr-2">Amount</div>
             </div>
 
-            <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar pb-[130px] relative">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar pb-8 relative">
               {filteredAndSorted.map(customer => {
                 const totalQty = customer.purchases.reduce((sum, p) => sum + (Number(p.qty) || 0), 0);
                 const totalAmount = customer.purchases.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
@@ -762,13 +767,14 @@
                 return (
                   <div key={customer.id} className="relative bg-white border-b border-[#F2EFE8] overflow-hidden">
                     {/* 삭제 버튼 배경 */}
-                    <div className="absolute right-0 top-0 bottom-0 w-[70px] bg-[#FF3B30] flex items-center justify-center text-white cursor-pointer" onClick={(e) => handleDeleteCustomer(e, customer.id)}>
+                    <div className="absolute right-0 top-0 bottom-0 w-[80px] bg-[#FF3B30] flex flex-col items-center justify-center text-white cursor-pointer shadow-inner" onClick={(e) => handleDeleteCustomer(e, customer.id)}>
                       <Trash2 size={24} />
+                      <span className="text-[11px] font-sans font-medium mt-1">삭제</span>
                     </div>
                     {/* 컨텐츠 (스와이프 시 이동) */}
                     <div 
-                      className="grid grid-cols-[1.5fr_1fr_1.5fr] px-5 py-4 bg-white items-center cursor-pointer hover:bg-[#FDFBF7] transition-transform duration-200"
-                      style={{ transform: isSwiped ? 'translateX(-70px)' : 'translateX(0px)' }}
+                      className="grid grid-cols-[1.5fr_1fr_1.5fr] px-5 py-4 bg-white items-center cursor-pointer hover:bg-[#FDFBF7] transition-transform duration-300 ease-out"
+                      style={{ transform: isSwiped ? 'translateX(-80px)' : 'translateX(0px)' }}
                       onTouchStart={(e) => handleTouchStartItem(e, customer.id)}
                       onTouchMove={(e) => handleTouchMoveItem(e, customer.id)}
                       onClick={(e) => {
@@ -789,7 +795,7 @@
               {filteredAndSorted.length === 0 && <div className="flex justify-center items-center h-32 text-[#A8A29D] font-serif">검색된 고객이 없습니다.</div>}
             </div>
 
-            <button onClick={() => { setCustomerForm({ id: '', name: '', birthDate: '', phone: '', job: '', notes: '', purchases: [] }); setIsCustomerModalOpen(true); }} className="absolute bottom-[110px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
+            <button onClick={() => { setCustomerForm({ id: '', name: '', birthDate: '', phone: '', job: '', notes: '', purchases: [] }); setIsCustomerModalOpen(true); }} className="absolute bottom-[24px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
               <Plus size={26} strokeWidth={1.2} />
             </button>
           </div>
@@ -858,19 +864,20 @@
               <div className="text-center">Type</div>
             </div>
 
-            <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar pb-[130px] relative">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar pb-8 relative">
               {filteredInquiries.map(inquiry => {
                 const isSwiped = swipedItemId === inquiry.id;
                 return (
                   <div key={inquiry.id} className="relative bg-white border-b border-[#F2EFE8] overflow-hidden">
                      {/* 삭제 버튼 배경 */}
-                     <div className="absolute right-0 top-0 bottom-0 w-[70px] bg-[#FF3B30] flex items-center justify-center text-white cursor-pointer" onClick={(e) => handleDeleteInquiry(e, inquiry.id)}>
+                     <div className="absolute right-0 top-0 bottom-0 w-[80px] bg-[#FF3B30] flex flex-col items-center justify-center text-white cursor-pointer shadow-inner" onClick={(e) => handleDeleteInquiry(e, inquiry.id)}>
                         <Trash2 size={24} />
+                        <span className="text-[11px] font-sans font-medium mt-1">삭제</span>
                      </div>
                      {/* 컨텐츠 (스와이프 시 이동) */}
                      <div 
-                        className="grid grid-cols-[1.2fr_1fr_1fr] px-5 py-4 bg-white items-center cursor-pointer hover:bg-[#FDFBF7] transition-transform duration-200"
-                        style={{ transform: isSwiped ? 'translateX(-70px)' : 'translateX(0px)' }}
+                        className="grid grid-cols-[1.2fr_1fr_1fr] px-5 py-4 bg-white items-center cursor-pointer hover:bg-[#FDFBF7] transition-transform duration-300 ease-out"
+                        style={{ transform: isSwiped ? 'translateX(-80px)' : 'translateX(0px)' }}
                         onTouchStart={(e) => handleTouchStartItem(e, inquiry.id)}
                         onTouchMove={(e) => handleTouchMoveItem(e, inquiry.id)}
                         onClick={(e) => {
@@ -888,7 +895,7 @@
               {filteredInquiries.length === 0 && <div className="flex justify-center items-center h-32 text-[#A8A29D] font-serif">검색된 정보가 없습니다.</div>}
             </div>
 
-            <button onClick={() => { setInquiryForm({ id: '', date: new Date().toISOString().split('T')[0], type: '신규', customerName: '', birthDate: '', customerPhone: '', job: '', notes: '', memo: '', items: [] }); setIsInquiryModalOpen(true); }} className="absolute bottom-[110px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
+            <button onClick={() => { setInquiryForm({ id: '', date: new Date().toISOString().split('T')[0], type: '신규', customerName: '', birthDate: '', customerPhone: '', job: '', notes: '', memo: '', items: [] }); setIsInquiryModalOpen(true); }} className="absolute bottom-[24px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
               <Plus size={26} strokeWidth={1.2} />
             </button>
           </div>
@@ -935,7 +942,7 @@
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto no-scrollbar pb-[130px] relative px-5 pt-2">
+            <div className="flex-1 overflow-y-auto no-scrollbar pb-8 relative px-5 pt-2">
               <div className="grid grid-cols-2 gap-x-3 gap-y-4">
                 {filteredAlbums.map(album => {
                   const isSelected = selectedAlbumIds.includes(album.id);
@@ -973,7 +980,7 @@
             </div>
 
             {selectedAlbumIds.length > 0 && (
-              <div className="absolute bottom-[96px] left-0 right-0 bg-[#3A3532] text-white px-6 py-4 flex justify-between items-center z-40 animate-in slide-in-from-bottom-5">
+              <div className="absolute bottom-[20px] left-5 right-5 rounded-2xl bg-[#3A3532] text-white px-6 py-4 flex justify-between items-center z-40 animate-in slide-in-from-bottom-5 shadow-2xl">
                 <div className="flex items-center gap-3">
                    <button onClick={() => setSelectedAlbumIds([])} className="text-[#DCD6CC] hover:text-white transition-colors"><X size={20} /></button>
                    <span className="font-sans font-bold text-[13px]">{selectedAlbumIds.length}장 선택됨</span>
@@ -997,7 +1004,7 @@
                   setAlbumForm({ id: '', files: [], category: '전체', title: '', ref: '', memo: '' });
                   setIsAlbumModalOpen(true);
                 }}
-                className="absolute bottom-[110px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]"
+                className="absolute bottom-[24px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]"
               >
                 <Plus size={26} strokeWidth={1.2} />
               </button>
@@ -1055,7 +1062,7 @@
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto no-scrollbar pb-[130px] relative">
+            <div className="flex-1 overflow-y-auto no-scrollbar pb-8 relative">
               <div className="bg-white mx-5 border border-[#E8E4DB] rounded-[10px] shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
                 {filteredTasks.map((t, idx) => {
                   const catInfo = TASK_CATEGORIES.find(c => c.label === t.category) || TASK_CATEGORIES[0];
@@ -1081,7 +1088,7 @@
               </div>
             </div>
 
-            <button onClick={() => { setTaskForm({ id: '', date: new Date().toISOString().split('T')[0], category: '매장', title: '', memo: '' }); setIsTaskModalOpen(true); }} className="absolute bottom-[110px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
+            <button onClick={() => { setTaskForm({ id: '', date: new Date().toISOString().split('T')[0], category: '매장', title: '', memo: '' }); setIsTaskModalOpen(true); }} className="absolute bottom-[24px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
               <Plus size={26} strokeWidth={1.2} />
             </button>
           </div>
@@ -1228,7 +1235,7 @@
               <button onClick={handleSaveCustomer} className="text-[#8B7355] text-[15px] font-medium hover:text-[#6B5335] py-2">저장</button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 pb-[130px] mt-6 no-scrollbar">
+            <div className="flex-1 overflow-y-auto px-5 pb-8 mt-6 no-scrollbar">
               <div className="relative flex items-center justify-center mb-6 h-12">
                 <input type="text" value={customerForm.name} onChange={(e) => setCustomerForm({...customerForm, name: e.target.value})} placeholder="고객명 입력" className="text-3xl font-serif font-bold text-center text-[#2C2724] bg-transparent outline-none w-full placeholder-[#DCD6CC]" />
                 <div className="absolute right-0 top-0 bottom-0 flex items-center justify-center p-1">
@@ -1354,7 +1361,7 @@
               <button onClick={handleSaveInquiry} className="text-[#8B7355] text-[15px] font-medium hover:text-[#6B5335] py-2">저장</button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 pb-[130px] mt-6 no-scrollbar">
+            <div className="flex-1 overflow-y-auto px-5 pb-8 mt-6 no-scrollbar">
               <div className="relative flex items-center justify-center mb-6 h-12">
                 <input type="text" value={inquiryForm.customerName} onChange={(e) => setInquiryForm({...inquiryForm, customerName: e.target.value})} placeholder="고객명 입력" className="text-3xl font-serif font-bold text-center text-[#2C2724] bg-transparent outline-none w-full placeholder-[#DCD6CC]" />
                 <div className="absolute right-0 top-0 bottom-0 flex items-center justify-center p-1">
@@ -1448,7 +1455,7 @@
               <button onClick={handleSaveAlbum} className="text-[#8B7355] text-[15px] font-medium hover:text-[#6B5335] py-2">완료</button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 pb-[130px] mt-8 no-scrollbar">
+            <div className="flex-1 overflow-y-auto px-5 pb-8 mt-8 no-scrollbar">
               <input type="file" multiple={!albumForm.id} accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
               
               <div className="flex overflow-x-auto gap-3 no-scrollbar mb-6 pb-2 px-1">
@@ -1457,7 +1464,7 @@
                     const url = URL.createObjectURL(file);
                     return (
                       <div key={idx} className="relative w-28 h-28 shrink-0 rounded-[14px] overflow-hidden shadow-sm border border-[#E8E4DB]">
-                        <img src={url} className="w-full h-full object-cover" alt="preview" onLoad={() => URL.revokeObjectURL(url)} />
+                        <img src={url} className="w-full h-full object-cover" alt="preview" />
                         <button onClick={(e) => { e.stopPropagation(); removeFile(idx); }} className="absolute top-1.5 right-1.5 bg-black/60 text-white rounded-full p-1"><X size={14} /></button>
                       </div>
                     );
@@ -1577,7 +1584,7 @@
       };
 
       return (
-        <div className="w-full h-screen bg-[#DCD6CC] flex justify-center font-sans">
+        <div className="w-full h-[100dvh] bg-[#DCD6CC] flex justify-center font-sans">
           <div 
              className="w-full h-full max-w-md bg-[#FCFBF9] shadow-[0_0_50px_rgba(0,0,0,0.15)] relative flex flex-col overflow-hidden"
              onClick={closeSwipe}
@@ -1592,35 +1599,35 @@
             </div>
 
             {/* Bottom Navigation */}
-            <div className="absolute bottom-0 w-full h-[96px] bg-[#FCFBF9] border-t border-[#E8E4DB] grid grid-cols-5 px-1 pb-[calc(env(safe-area-inset-bottom)+10px)] pt-3 z-30 shrink-0">
-              <button onClick={() => setActiveTab('customer')} className={`flex flex-col items-center justify-start space-y-1.5 transition-colors relative ${activeTab === 'customer' ? 'text-[#8B7355]' : 'text-[#A8A29D] hover:text-[#7A746F]'}`}>
-                {activeTab === 'customer' && <div className="absolute -top-3 w-10 h-[3px] bg-[#8B7355]"></div>}
-                <Users size={28} strokeWidth={activeTab === 'customer' ? 1.5 : 1.2} />
-                <span className="text-[12px] font-serif tracking-widest mt-1">고객</span>
+            <div className="w-full bg-[#FCFBF9] border-t border-[#E8E4DB] grid grid-cols-5 px-1 pb-[calc(env(safe-area-inset-bottom)+8px)] pt-3 shrink-0 z-30">
+              <button onClick={() => setActiveTab('customer')} className={`flex flex-col items-center justify-start space-y-1 transition-colors relative ${activeTab === 'customer' ? 'text-[#8B7355]' : 'text-[#A8A29D] hover:text-[#7A746F]'}`}>
+                {activeTab === 'customer' && <div className="absolute -top-3 w-12 h-[3px] bg-[#8B7355] rounded-b-md"></div>}
+                <Users size={30} strokeWidth={activeTab === 'customer' ? 1.8 : 1.5} />
+                <span className="text-[13px] font-serif tracking-widest mt-1">고객</span>
               </button>
               
-              <button onClick={() => setActiveTab('inquiries')} className={`flex flex-col items-center justify-start space-y-1.5 transition-colors relative ${activeTab === 'inquiries' ? 'text-[#8B7355]' : 'text-[#A8A29D] hover:text-[#7A746F]'}`}>
-                {activeTab === 'inquiries' && <div className="absolute -top-3 w-10 h-[3px] bg-[#8B7355]"></div>}
-                <MessageSquare size={28} strokeWidth={activeTab === 'inquiries' ? 1.5 : 1.2} />
-                <span className="text-[12px] font-serif tracking-widest mt-1">문의사항</span>
+              <button onClick={() => setActiveTab('inquiries')} className={`flex flex-col items-center justify-start space-y-1 transition-colors relative ${activeTab === 'inquiries' ? 'text-[#8B7355]' : 'text-[#A8A29D] hover:text-[#7A746F]'}`}>
+                {activeTab === 'inquiries' && <div className="absolute -top-3 w-12 h-[3px] bg-[#8B7355] rounded-b-md"></div>}
+                <MessageSquare size={30} strokeWidth={activeTab === 'inquiries' ? 1.8 : 1.5} />
+                <span className="text-[13px] font-serif tracking-widest mt-1">문의사항</span>
               </button>
               
-              <button onClick={() => setActiveTab('calendar')} className={`flex flex-col items-center justify-start space-y-1.5 transition-colors relative ${activeTab === 'calendar' ? 'text-[#8B7355]' : 'text-[#A8A29D] hover:text-[#7A746F]'}`}>
-                {activeTab === 'calendar' && <div className="absolute -top-3 w-10 h-[3px] bg-[#8B7355]"></div>}
-                <CalendarDays size={28} strokeWidth={activeTab === 'calendar' ? 1.5 : 1.2} />
-                <span className="text-[12px] font-serif tracking-widest mt-1">달력</span>
+              <button onClick={() => setActiveTab('calendar')} className={`flex flex-col items-center justify-start space-y-1 transition-colors relative ${activeTab === 'calendar' ? 'text-[#8B7355]' : 'text-[#A8A29D] hover:text-[#7A746F]'}`}>
+                {activeTab === 'calendar' && <div className="absolute -top-3 w-12 h-[3px] bg-[#8B7355] rounded-b-md"></div>}
+                <CalendarDays size={30} strokeWidth={activeTab === 'calendar' ? 1.8 : 1.5} />
+                <span className="text-[13px] font-serif tracking-widest mt-1">달력</span>
               </button>
 
-              <button onClick={() => setActiveTab('album')} className={`flex flex-col items-center justify-start space-y-1.5 transition-colors relative ${activeTab === 'album' ? 'text-[#8B7355]' : 'text-[#A8A29D] hover:text-[#7A746F]'}`}>
-                {activeTab === 'album' && <div className="absolute -top-3 w-10 h-[3px] bg-[#8B7355]"></div>}
-                <ImageIcon size={28} strokeWidth={activeTab === 'album' ? 1.5 : 1.2} />
-                <span className="text-[12px] font-serif tracking-widest mt-1">앨범</span>
+              <button onClick={() => setActiveTab('album')} className={`flex flex-col items-center justify-start space-y-1 transition-colors relative ${activeTab === 'album' ? 'text-[#8B7355]' : 'text-[#A8A29D] hover:text-[#7A746F]'}`}>
+                {activeTab === 'album' && <div className="absolute -top-3 w-12 h-[3px] bg-[#8B7355] rounded-b-md"></div>}
+                <ImageIcon size={30} strokeWidth={activeTab === 'album' ? 1.8 : 1.5} />
+                <span className="text-[13px] font-serif tracking-widest mt-1">앨범</span>
               </button>
 
-              <button onClick={() => setActiveTab('task')} className={`flex flex-col items-center justify-start space-y-1.5 transition-colors relative ${activeTab === 'task' ? 'text-[#8B7355]' : 'text-[#A8A29D] hover:text-[#7A746F]'}`}>
-                {activeTab === 'task' && <div className="absolute -top-3 w-10 h-[3px] bg-[#8B7355]"></div>}
-                <Briefcase size={28} strokeWidth={activeTab === 'task' ? 1.5 : 1.2} />
-                <span className="text-[12px] font-serif tracking-widest mt-1">업무</span>
+              <button onClick={() => setActiveTab('task')} className={`flex flex-col items-center justify-start space-y-1 transition-colors relative ${activeTab === 'task' ? 'text-[#8B7355]' : 'text-[#A8A29D] hover:text-[#7A746F]'}`}>
+                {activeTab === 'task' && <div className="absolute -top-3 w-12 h-[3px] bg-[#8B7355] rounded-b-md"></div>}
+                <Briefcase size={30} strokeWidth={activeTab === 'task' ? 1.8 : 1.5} />
+                <span className="text-[13px] font-serif tracking-widest mt-1">업무</span>
               </button>
             </div>
 
