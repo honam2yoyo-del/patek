@@ -616,7 +616,7 @@
               <div className="grid grid-cols-7 relative z-10 border-y border-[#E8E4DB] mx-5 shrink-0">
                 {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => <div key={day} className={`py-4 text-center text-[13px] tracking-widest font-serif ${idx === 0 ? 'text-[#A06C6C]' : 'text-[#6B635C]'}`}>{day}</div>)}
               </div>
-              <div className="flex-1 overflow-y-auto px-5 pb-[calc(130px+env(safe-area-inset-bottom))] no-scrollbar relative z-0">
+              <div className="flex-1 overflow-y-auto px-5 pb-[calc(180px+env(safe-area-inset-bottom))] no-scrollbar relative z-0">
                 {calendarWeeks.map((wDates, wIdx) => {
                   let weekEvents = events.filter(e => { const eStart = e.date; const eEnd = e.endDate || e.date; return eStart <= wDates[6] && eEnd >= wDates[0]; });
                   weekEvents.sort((a, b) => { if (a.date !== b.date) return a.date.localeCompare(b.date); const aDur = new Date(a.endDate || a.date) - new Date(a.date); const bDur = new Date(b.endDate || b.date) - new Date(b.date); return bDur - aDur; });
@@ -739,7 +739,7 @@
               <div className="text-center pr-2">Amount</div>
             </div>
 
-            <div className="flex-1 overflow-y-auto no-scrollbar pb-[calc(130px+env(safe-area-inset-bottom))] relative">
+            <div className="flex-1 overflow-y-auto no-scrollbar pb-[calc(180px+env(safe-area-inset-bottom))] relative">
               {filteredAndSorted.map(customer => {
                 const totalQty = customer.purchases.reduce((sum, p) => sum + (Number(p.qty) || 0), 0);
                 const totalAmount = customer.purchases.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
@@ -814,7 +814,7 @@
               <div className="text-center">Type</div>
             </div>
 
-            <div className="flex-1 overflow-y-auto no-scrollbar pb-[calc(130px+env(safe-area-inset-bottom))] relative">
+            <div className="flex-1 overflow-y-auto no-scrollbar pb-[calc(180px+env(safe-area-inset-bottom))] relative">
               {filteredInquiries.map(inquiry => (
                 <div key={inquiry.id} onClick={() => { setInquiryForm(JSON.parse(JSON.stringify(inquiry))); setIsInquiryModalOpen(true); }} className="grid grid-cols-[1.2fr_1fr_1fr] px-5 py-4 border-b border-[#F2EFE8] bg-white items-center cursor-pointer hover:bg-[#FDFBF7] transition-colors">
                   <div className="text-center font-sans text-[#6B635C] text-[13px]">{inquiry.date}</div>
@@ -873,7 +873,7 @@
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto no-scrollbar pb-[calc(130px+env(safe-area-inset-bottom))] relative px-5 pt-2">
+            <div className="flex-1 overflow-y-auto no-scrollbar pb-[calc(180px+env(safe-area-inset-bottom))] relative px-5 pt-2">
               <div className="grid grid-cols-2 gap-x-3 gap-y-4">
                 {filteredAlbums.map(album => {
                   const isSelected = selectedAlbumIds.includes(album.id);
@@ -994,7 +994,7 @@
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto no-scrollbar pb-[calc(130px+env(safe-area-inset-bottom))] relative">
+            <div className="flex-1 overflow-y-auto no-scrollbar pb-[calc(180px+env(safe-area-inset-bottom))] relative">
               <div className="bg-white mx-5 border border-[#E8E4DB] rounded-[10px] shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
                 {filteredTasks.map((t, idx) => {
                   const catInfo = TASK_CATEGORIES.find(c => c.label === t.category) || TASK_CATEGORIES[0];
@@ -1172,7 +1172,7 @@
               <button onClick={handleSaveCustomer} className="text-[#8B7355] text-[15px] font-medium hover:text-[#6B5335] py-2">저장</button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 pb-[calc(130px+env(safe-area-inset-bottom))] mt-6 no-scrollbar">
+            <div className="flex-1 overflow-y-auto px-5 pb-[calc(180px+env(safe-area-inset-bottom))] mt-6 no-scrollbar">
               <div className="relative flex items-center justify-center mb-6 h-12">
                 <input type="text" value={customerForm.name} onChange={(e) => setCustomerForm({...customerForm, name: e.target.value})} placeholder="고객명 입력" className="text-3xl font-serif font-bold text-center text-[#2C2724] bg-transparent outline-none w-full placeholder-[#DCD6CC]" />
                 <div className="absolute right-0 top-0 bottom-0 flex items-center justify-center p-1">
@@ -1298,7 +1298,7 @@
               <button onClick={handleSaveInquiry} className="text-[#8B7355] text-[15px] font-medium hover:text-[#6B5335] py-2">저장</button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 pb-[calc(130px+env(safe-area-inset-bottom))] mt-6 no-scrollbar">
+            <div className="flex-1 overflow-y-auto px-5 pb-[calc(180px+env(safe-area-inset-bottom))] mt-6 no-scrollbar">
               <div className="relative flex items-center justify-center mb-6 h-12">
                 <input type="text" value={inquiryForm.customerName} onChange={(e) => setInquiryForm({...inquiryForm, customerName: e.target.value})} placeholder="고객명 입력" className="text-3xl font-serif font-bold text-center text-[#2C2724] bg-transparent outline-none w-full placeholder-[#DCD6CC]" />
                 <div className="absolute right-0 top-0 bottom-0 flex items-center justify-center p-1">
@@ -1404,7 +1404,7 @@
               <button onClick={handleSaveAlbum} className="text-[#8B7355] text-[15px] font-medium hover:text-[#6B5335] py-2">완료</button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 pb-[calc(130px+env(safe-area-inset-bottom))] mt-8 no-scrollbar">
+            <div className="flex-1 overflow-y-auto px-5 pb-[calc(180px+env(safe-area-inset-bottom))] mt-8 no-scrollbar">
               <input type="file" multiple={!albumForm.id} accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
               <div 
                 onClick={() => fileInputRef.current?.click()} 
