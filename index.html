@@ -38,9 +38,6 @@
     /* Tailwind의 font-serif 클래스를 맑은 고딕으로 덮어쓰기 */
     .font-serif { font-family: "Malgun Gothic", sans-serif !important; }
     .font-sans { font-family: "Malgun Gothic", sans-serif !important; }
-    
-    /* 스와이프 중 세로 스크롤 허용을 위한 설정 */
-    .page-slider { touch-action: pan-y; }
   </style>
 </head>
 <body>
@@ -155,7 +152,7 @@
       return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}(${days[d.getDay()]})`;
     };
 
-    // 이미지 압축 헬퍼 함수
+    // 이미지 압축 헬퍼 함수 (Base64 변환)
     const compressImage = (file) => {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -218,7 +215,7 @@
       );
     };
 
-    // 고급 Confirm 컴포넌트
+    // 고급 Confirm 컴포넌트 (삭제 시 확인용)
     const CustomConfirm = ({ message, onConfirm, onClose }) => {
       if (!message) return null;
       return (
@@ -248,9 +245,9 @@
       const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null });
       const fileInputRef = useRef(null);
       
-      // 스와이프 상태 (스크롤 오류 해결을 위해 세로 스크롤 허용)
-      const [touchStart, setTouchStart] = useState({ x: null, y: null });
-      const [touchEnd, setTouchEnd] = useState({ x: null, y: null });
+      // 스와이프 상태
+      const [touchStart, setTouchStart] = useState(null);
+      const [touchEnd, setTouchEnd] = useState(null);
 
       // --- DB Data States ---
       const [events, setEvents] = useState([]);
@@ -375,40 +372,35 @@
       }, [user, isLoggedIn]);
 
       // ==========================================
-      // 스와이프 제스처 이벤트 (정밀 컨트롤)
+      // 스와이프 제스처 이벤트
       // ==========================================
-      const onTouchStartEvent = (e) => {
-        setTouchEnd({ x: null, y: null });
-        setTouchStart({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
+      const onTouchStart = (e) => {
+        setTouchEnd(null);
+        setTouchStart(e.targetTouches[0].clientX);
       };
 
-      const onTouchMoveEvent = (e) => {
-        setTouchEnd({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
+      const onTouchMove = (e) => {
+        setTouchEnd(e.targetTouches[0].clientX);
       };
 
-      const onTouchEndEvent = () => {
-        if (!touchStart.x || !touchEnd.x) return;
-        const distanceX = touchStart.x - touchEnd.x;
-        const distanceY = touchStart.y - touchEnd.y;
+      const onTouchEnd = () => {
+        if (!touchStart || !touchEnd) return;
+        const distance = touchStart - touchEnd;
+        const isLeftSwipe = distance > 50; 
+        const isRightSwipe = distance < -50; 
         
-        const isLeftSwipe = distanceX > 50; 
-        const isRightSwipe = distanceX < -50; 
-        
-        // 가로 스와이프 거리가 세로 스크롤 거리보다 명확하게 클 때만 탭을 이동합니다.
-        if (Math.abs(distanceX) > Math.abs(distanceY)) {
-          const tabsOrder = ['customer', 'inquiries', 'calendar', 'album', 'task'];
-          const currentIndex = tabsOrder.indexOf(activeTab);
+        const tabsOrder = ['customer', 'inquiries', 'calendar', 'album', 'task'];
+        const currentIndex = tabsOrder.indexOf(activeTab);
 
-          if (isLeftSwipe && currentIndex < tabsOrder.length - 1) {
-            setActiveTab(tabsOrder[currentIndex + 1]);
-          }
-          if (isRightSwipe && currentIndex > 0) {
-            setActiveTab(tabsOrder[currentIndex - 1]);
-          }
+        if (isLeftSwipe && currentIndex < tabsOrder.length - 1) {
+          setActiveTab(tabsOrder[currentIndex + 1]);
+        }
+        if (isRightSwipe && currentIndex > 0) {
+          setActiveTab(tabsOrder[currentIndex - 1]);
         }
         
-        setTouchStart({ x: null, y: null });
-        setTouchEnd({ x: null, y: null });
+        setTouchStart(null);
+        setTouchEnd(null);
       };
 
       // ==========================================
@@ -553,7 +545,7 @@
       // ==========================================
       if (!isLoggedIn) {
         return (
-          <div className="w-full h-[100dvh] bg-[#DCD6CC] flex justify-center font-sans">
+          <div className="w-full h-screen bg-[#DCD6CC] flex justify-center font-sans">
              <div className="w-full h-full max-w-md bg-[#FCFBF9] shadow-[0_0_50px_rgba(0,0,0,0.15)] flex flex-col items-center justify-center font-serif relative px-6">
                 <img src="./logo.png" alt="Patek Philippe" className="w-24 h-24 mb-6 object-contain" />
                 <h1 className="text-3xl font-serif text-[#3A3532] tracking-widest mb-16 text-center leading-snug">PATEK PHILIPPE</h1>
@@ -572,7 +564,7 @@
       }
 
       // ==========================================
-      // 탭별 화면 렌더링 함수들
+      // 각 탭별 화면 렌더링
       // ==========================================
 
       // --- 1. 달력 (Calendar) ---
@@ -624,14 +616,14 @@
               <div className="grid grid-cols-7 relative z-10 border-y border-[#E8E4DB] mx-5 shrink-0">
                 {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => <div key={day} className={`py-4 text-center text-[13px] tracking-widest font-serif ${idx === 0 ? 'text-[#A06C6C]' : 'text-[#6B635C]'}`}>{day}</div>)}
               </div>
-              <div className="flex-1 overflow-y-auto px-5 pb-24 no-scrollbar relative z-0">
+              <div className="flex-1 overflow-y-auto px-5 pb-[130px] no-scrollbar relative z-0">
                 {calendarWeeks.map((wDates, wIdx) => {
                   let weekEvents = events.filter(e => { const eStart = e.date; const eEnd = e.endDate || e.date; return eStart <= wDates[6] && eEnd >= wDates[0]; });
                   weekEvents.sort((a, b) => { if (a.date !== b.date) return a.date.localeCompare(b.date); const aDur = new Date(a.endDate || a.date) - new Date(a.date); const bDur = new Date(b.endDate || b.date) - new Date(b.date); return bDur - aDur; });
                   const slots = []; const eventSlots = {};
                   weekEvents.forEach(e => {
                     const eStart = e.date; const eEnd = e.endDate || e.date; 
-                    for (let slotIdx = 0; slotIdx < 10; slotIdx++) {
+                    for (let slotIdx = 0; slotIdx < 10; slotIdx++) { // 안전한 가드
                       if (!slots[slotIdx]) slots[slotIdx] = []; let isFree = true;
                       const effectiveStart = eStart < wDates[0] ? wDates[0] : eStart; const effectiveEnd = eEnd > wDates[6] ? wDates[6] : eEnd;
                       for (let currStr = effectiveStart; currStr <= effectiveEnd; currStr = getNextDayStr(currStr)) { if (slots[slotIdx].includes(currStr)) { isFree = false; break; } }
@@ -686,7 +678,7 @@
               </div>
             </div>
             
-            <button onClick={() => { setFormData({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'yellow' }); setIsAddModalOpen(true); }} className="absolute bottom-6 right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
+            <button onClick={() => { setFormData({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'yellow' }); setIsAddModalOpen(true); }} className="absolute bottom-[100px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
               <Plus size={26} strokeWidth={1.2} />
             </button>
           </div>
@@ -747,7 +739,7 @@
               <div className="text-center pr-2">Amount</div>
             </div>
 
-            <div className="flex-1 overflow-y-auto no-scrollbar pb-24 relative">
+            <div className="flex-1 overflow-y-auto no-scrollbar pb-[130px] relative">
               {filteredAndSorted.map(customer => {
                 const totalQty = customer.purchases.reduce((sum, p) => sum + (Number(p.qty) || 0), 0);
                 const totalAmount = customer.purchases.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
@@ -765,7 +757,7 @@
               {filteredAndSorted.length === 0 && <div className="flex justify-center items-center h-32 text-[#A8A29D] font-serif">검색된 고객이 없습니다.</div>}
             </div>
 
-            <button onClick={() => { setCustomerForm({ id: '', name: '', birthDate: '', phone: '', job: '', notes: '', purchases: [] }); setIsCustomerModalOpen(true); }} className="absolute bottom-6 right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
+            <button onClick={() => { setCustomerForm({ id: '', name: '', birthDate: '', phone: '', job: '', notes: '', purchases: [] }); setIsCustomerModalOpen(true); }} className="absolute bottom-[100px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
               <Plus size={26} strokeWidth={1.2} />
             </button>
           </div>
@@ -822,7 +814,7 @@
               <div className="text-center">Type</div>
             </div>
 
-            <div className="flex-1 overflow-y-auto no-scrollbar pb-24 relative">
+            <div className="flex-1 overflow-y-auto no-scrollbar pb-[130px] relative">
               {filteredInquiries.map(inquiry => (
                 <div key={inquiry.id} onClick={() => { setInquiryForm(JSON.parse(JSON.stringify(inquiry))); setIsInquiryModalOpen(true); }} className="grid grid-cols-[1.2fr_1fr_1fr] px-5 py-4 border-b border-[#F2EFE8] bg-white items-center cursor-pointer hover:bg-[#FDFBF7] transition-colors">
                   <div className="text-center font-sans text-[#6B635C] text-[13px]">{inquiry.date}</div>
@@ -833,7 +825,7 @@
               {filteredInquiries.length === 0 && <div className="flex justify-center items-center h-32 text-[#A8A29D] font-serif">검색된 정보가 없습니다.</div>}
             </div>
 
-            <button onClick={() => { setInquiryForm({ id: '', date: new Date().toISOString().split('T')[0], type: '신규', customerName: '', birthDate: '', customerPhone: '', job: '', notes: '', memo: '', items: [] }); setIsInquiryModalOpen(true); }} className="absolute bottom-6 right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
+            <button onClick={() => { setInquiryForm({ id: '', date: new Date().toISOString().split('T')[0], type: '신규', customerName: '', birthDate: '', customerPhone: '', job: '', notes: '', memo: '', items: [] }); setIsInquiryModalOpen(true); }} className="absolute bottom-[100px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
               <Plus size={26} strokeWidth={1.2} />
             </button>
           </div>
@@ -881,7 +873,7 @@
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto no-scrollbar pb-24 relative px-5 pt-2">
+            <div className="flex-1 overflow-y-auto no-scrollbar pb-[130px] relative px-5 pt-2">
               <div className="grid grid-cols-2 gap-x-3 gap-y-4">
                 {filteredAlbums.map(album => {
                   const isSelected = selectedAlbumIds.includes(album.id);
@@ -919,7 +911,7 @@
             </div>
 
             {selectedAlbumIds.length > 0 && (
-              <div className="absolute bottom-6 left-0 right-0 bg-[#3A3532] text-white px-6 py-4 flex justify-between items-center z-40 animate-in slide-in-from-bottom-5">
+              <div className="absolute bottom-[84px] left-0 right-0 bg-[#3A3532] text-white px-6 py-4 flex justify-between items-center z-40 animate-in slide-in-from-bottom-5">
                 <div className="flex items-center gap-3">
                    <button onClick={() => setSelectedAlbumIds([])} className="text-[#DCD6CC] hover:text-white transition-colors"><X size={20} /></button>
                    <span className="font-sans font-bold text-[13px]">{selectedAlbumIds.length}장 선택됨</span>
@@ -943,7 +935,7 @@
                   setAlbumForm({ id: '', files: [], category: '전체', title: '', ref: '', memo: '' });
                   setIsAlbumModalOpen(true);
                 }}
-                className="absolute bottom-6 right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]"
+                className="absolute bottom-[100px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]"
               >
                 <Plus size={26} strokeWidth={1.2} />
               </button>
@@ -1002,7 +994,7 @@
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto no-scrollbar pb-24 relative">
+            <div className="flex-1 overflow-y-auto no-scrollbar pb-[130px] relative">
               <div className="bg-white mx-5 border border-[#E8E4DB] rounded-[10px] shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
                 {filteredTasks.map((t, idx) => {
                   const catInfo = TASK_CATEGORIES.find(c => c.label === t.category) || TASK_CATEGORIES[0];
@@ -1028,7 +1020,7 @@
               </div>
             </div>
 
-            <button onClick={() => { setTaskForm({ id: '', date: new Date().toISOString().split('T')[0], category: '매장', title: '', memo: '' }); setIsTaskModalOpen(true); }} className="absolute bottom-6 right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
+            <button onClick={() => { setTaskForm({ id: '', date: new Date().toISOString().split('T')[0], category: '매장', title: '', memo: '' }); setIsTaskModalOpen(true); }} className="absolute bottom-[100px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
               <Plus size={26} strokeWidth={1.2} />
             </button>
           </div>
@@ -1036,8 +1028,90 @@
       };
 
       // ==========================================
-      // 공통 모달 렌더링 (Customer, Inquiry, Album, Task)
+      // 공통 모달 렌더링 함수들
       // ==========================================
+
+      const renderAddModal = () => {
+        if (!isAddModalOpen) return null;
+        return (
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm z-[100] flex flex-col justify-end">
+            <div className="bg-[#FCFBF9] relative z-[101] rounded-t-3xl p-7 w-full animate-in slide-in-from-bottom-full duration-300 shadow-[0_-15px_40px_rgba(0,0,0,0.15)] border-t border-[#E8E4DB] max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-7">
+                <h3 className="text-xl font-serif tracking-widest text-[#3A3532]">{formData.id ? '일정 수정' : '새로운 일정'}</h3>
+                <button onClick={() => { setIsAddModalOpen(false); setIsMultiDay(false); }} className="p-2 rounded-full hover:bg-[#F2EFE8] transition-colors"><X size={22} className="text-[#8A847E]" strokeWidth={1.5} /></button>
+              </div>
+              <div className="space-y-7">
+                <div>
+                  <label className="block text-[11px] font-medium tracking-widest text-[#8A847E] mb-2 uppercase font-sans">Date</label>
+                  <div className="flex items-center gap-2">
+                    <input type="date" value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} className="flex-1 bg-transparent border-b border-[#DCD6CC] py-2 text-[#4A443F] focus:border-[#8B7355] outline-none transition-all font-serif text-sm" />
+                    {isMultiDay && (
+                      <><span className="text-[#8A847E] font-serif">~</span><input type="date" value={formData.endDate} min={formData.date} onChange={(e) => setFormData({...formData, endDate: e.target.value})} className="flex-1 bg-transparent border-b border-[#DCD6CC] py-2 text-[#4A443F] focus:border-[#8B7355] outline-none transition-all font-serif text-sm animate-in fade-in" /></>
+                    )}
+                    <button onClick={() => { setIsMultiDay(!isMultiDay); if (isMultiDay) setFormData({ ...formData, endDate: '' }); }} className="p-1.5 rounded-[4px] bg-[#F2EFE8] text-[#6B635C] hover:bg-[#E8E4DB] hover:text-[#2C2724] border border-[#E8E4DB] transition-all shrink-0 flex items-center justify-center ml-1 shadow-sm" title={isMultiDay ? "단일 일정으로 변경" : "기간 일정 추가"}>
+                      {isMultiDay ? <X size={16} strokeWidth={2} /> : <Plus size={16} strokeWidth={2} />}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium tracking-widest text-[#8A847E] mb-3 uppercase font-sans">Category</label>
+                  <div className="flex flex-wrap gap-2">
+                    {CATEGORIES.map(cat => (
+                      <button key={cat.id} onClick={() => setFormData({...formData, categoryId: cat.id})} className={`px-4 py-1.5 rounded-[3px] text-xs font-medium tracking-wide transition-all border font-sans ${formData.categoryId === cat.id ? `border-transparent ${cat.color} ${cat.textColor} shadow-md scale-[1.02]` : 'bg-white text-[#8A847E] border-[#E8E4DB] hover:bg-[#F2EFE8]'}`}>{cat.label}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium tracking-widest text-[#8A847E] mb-2 uppercase font-sans">Title</label>
+                  <input type="text" placeholder="일정 제목" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full bg-transparent border-b border-[#DCD6CC] py-2 text-[#4A443F] placeholder-[#C2BDB5] focus:border-[#8B7355] outline-none transition-all font-sans text-sm" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium tracking-widest text-[#8A847E] mb-2 uppercase font-sans">Memo</label>
+                  <textarea rows="3" placeholder="상세 내용을 입력하세요" value={formData.content} onChange={(e) => setFormData({...formData, content: e.target.value})} className="w-full bg-white border border-[#E8E4DB] rounded-sm shadow-sm p-4 text-[#4A443F] placeholder-[#C2BDB5] focus:ring-1 focus:ring-[#8B7355] focus:border-[#8B7355] outline-none transition-all resize-none text-sm font-serif leading-relaxed"></textarea>
+                </div>
+                <button onClick={handleSaveEvent} className="w-full bg-[#3A3532] hover:bg-[#2A2522] text-[#F3EFE8] font-serif tracking-widest py-4 rounded-sm mt-2 transition-colors shadow-lg text-sm border border-[#2A2522]">{formData.id ? '수정 완료' : '저장하기'}</button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const renderViewModal = () => {
+        if (!isViewModalOpen || !selectedEvent) return null;
+        const displayDate = selectedEvent.endDate ? `${selectedEvent.date} ~ ${selectedEvent.endDate}` : selectedEvent.date;
+        const handleEditClick = () => {
+          setFormData({ id: selectedEvent.id, date: selectedEvent.date, endDate: selectedEvent.endDate || '', title: selectedEvent.title, content: selectedEvent.content, categoryId: selectedEvent.categoryId || 'yellow' });
+          setIsMultiDay(!!selectedEvent.endDate && selectedEvent.endDate !== selectedEvent.date);
+          setIsViewModalOpen(false); setIsAddModalOpen(true);
+        };
+        const handleDeleteEvent = async (id) => {
+          if (user.uid !== 'local-test-user') await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'events', id));
+          setIsViewModalOpen(false);
+        };
+        return (
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
+            <div className="bg-[#FCFBF9] relative z-[101] rounded-xl p-8 w-full max-w-sm animate-in fade-in duration-300 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-[#E8E4DB]">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <span className={`inline-block px-3 py-1 rounded-[3px] text-[10px] tracking-wider font-medium mb-3 border font-sans ${selectedEvent.category.color} ${selectedEvent.category.textColor} ${selectedEvent.category.border}`}>{selectedEvent.category.label}</span>
+                  <h3 className="text-2xl font-serif text-[#3A3532] break-all leading-snug">{selectedEvent.title}</h3>
+                  <p className="text-[13px] tracking-widest text-[#8A847E] mt-3 font-serif">{displayDate}</p>
+                </div>
+                <button onClick={() => setIsViewModalOpen(false)} className="p-1.5 rounded-full hover:bg-[#F2EFE8] transition-colors -mr-2 -mt-2"><X size={22} className="text-[#8A847E]" strokeWidth={1.5} /></button>
+              </div>
+              <div className="bg-white rounded-sm p-5 min-h-[140px] mb-8 whitespace-pre-wrap text-[#4A443F] text-sm border border-[#E8E4DB] shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] font-serif leading-relaxed">
+                {selectedEvent.content || '내용이 없습니다.'}
+              </div>
+              <div className="flex gap-3 w-full">
+                <button onClick={handleEditClick} className="flex-1 bg-[#3A3532] hover:bg-[#2A2522] text-[#F3EFE8] font-serif tracking-widest py-3.5 rounded-sm transition-colors shadow-md border border-[#2A2522] text-sm">수정</button>
+                <button onClick={() => handleDeleteEvent(selectedEvent.id)} className="flex-1 bg-white hover:bg-[#FFF5F5] text-[#A06C6C] font-serif tracking-widest py-3.5 rounded-sm transition-colors border border-[#E8D8D8] text-sm">삭제</button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      // --- 고객 모달 ---
       const renderCustomerModal = () => {
         if (!isCustomerModalOpen || !customerForm) return null;
 
@@ -1089,16 +1163,16 @@
 
         return (
           <div className="absolute inset-0 bg-[#FCFBF9] z-[100] flex flex-col font-sans animate-in slide-in-from-bottom-5">
-            <div className="flex justify-between items-center px-5 pt-[calc(env(safe-area-inset-top)+16px)] pb-4 bg-[#FCFBF9] sticky top-0 z-20 shrink-0">
+            <div className="flex justify-between items-center px-5 pt-8 pb-4 bg-[#FCFBF9] sticky top-0 z-20 shrink-0">
               <button onClick={() => setIsCustomerModalOpen(false)} className="text-[#8A847E] text-[15px] hover:text-[#4A443F] py-2">취소</button>
-              <a href="https://www.patek.com/en" target="_blank" rel="noopener noreferrer" className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center">
+              <a href="https://www.patek.com/en" target="_blank" rel="noopener noreferrer" className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center top-6">
                  <img src="./logo.png" alt="Logo" className="w-12 h-12 object-contain" />
                  <span className="font-serif text-[18px] text-[#3A3532] -mt-1">Customer</span>
               </a>
               <button onClick={handleSaveCustomer} className="text-[#8B7355] text-[15px] font-medium hover:text-[#6B5335] py-2">저장</button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 pb-24 mt-4 no-scrollbar">
+            <div className="flex-1 overflow-y-auto px-5 pb-[130px] mt-6 no-scrollbar">
               <div className="relative flex items-center justify-center mb-6 h-12">
                 <input type="text" value={customerForm.name} onChange={(e) => setCustomerForm({...customerForm, name: e.target.value})} placeholder="고객명 입력" className="text-3xl font-serif font-bold text-center text-[#2C2724] bg-transparent outline-none w-full placeholder-[#DCD6CC]" />
                 <div className="absolute right-0 top-0 bottom-0 flex items-center justify-center p-1">
@@ -1215,16 +1289,16 @@
 
         return (
           <div className="absolute inset-0 bg-[#FCFBF9] z-[100] flex flex-col font-sans animate-in slide-in-from-bottom-5">
-            <div className="flex justify-between items-center px-5 pt-[calc(env(safe-area-inset-top)+16px)] pb-4 bg-[#FCFBF9] sticky top-0 z-20 shrink-0">
+            <div className="flex justify-between items-center px-5 pt-8 pb-4 bg-[#FCFBF9] sticky top-0 z-20 shrink-0">
               <button onClick={() => setIsInquiryModalOpen(false)} className="text-[#8A847E] text-[15px] hover:text-[#4A443F] py-2">취소</button>
-              <a href="https://www.patek.com/en" target="_blank" rel="noopener noreferrer" className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center">
+              <a href="https://www.patek.com/en" target="_blank" rel="noopener noreferrer" className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center top-6">
                  <img src="./logo.png" alt="Logo" className="w-12 h-12 object-contain" />
                  <span className="font-serif text-[18px] text-[#3A3532] -mt-1">Wish List</span>
               </a>
               <button onClick={handleSaveInquiry} className="text-[#8B7355] text-[15px] font-medium hover:text-[#6B5335] py-2">저장</button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 pb-24 mt-4 no-scrollbar">
+            <div className="flex-1 overflow-y-auto px-5 pb-[130px] mt-6 no-scrollbar">
               <div className="relative flex items-center justify-center mb-6 h-12">
                 <input type="text" value={inquiryForm.customerName} onChange={(e) => setInquiryForm({...inquiryForm, customerName: e.target.value})} placeholder="고객명 입력" className="text-3xl font-serif font-bold text-center text-[#2C2724] bg-transparent outline-none w-full placeholder-[#DCD6CC]" />
                 <div className="absolute right-0 top-0 bottom-0 flex items-center justify-center p-1">
@@ -1321,16 +1395,16 @@
 
         return (
           <div className="absolute inset-0 bg-[#FCFBF9] z-[100] flex flex-col font-sans animate-in slide-in-from-bottom-5">
-            <div className="flex justify-between items-center px-5 pt-[calc(env(safe-area-inset-top)+16px)] pb-4 bg-[#FCFBF9] sticky top-0 z-20 shrink-0">
+            <div className="flex justify-between items-center px-5 pt-8 pb-4 bg-[#FCFBF9] sticky top-0 z-20 shrink-0">
               <button onClick={() => setIsAlbumModalOpen(false)} className="text-[#8A847E] text-[15px] hover:text-[#4A443F] py-2">취소</button>
-              <a href="https://www.patek.com/en" target="_blank" rel="noopener noreferrer" className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center">
+              <a href="https://www.patek.com/en" target="_blank" rel="noopener noreferrer" className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center top-6">
                  <img src="./logo.png" alt="Logo" className="w-12 h-12 object-contain" />
                  <span className="font-serif text-[18px] text-[#3A3532] -mt-1">{albumForm.id ? 'Edit Photo' : 'Upload Photo'}</span>
               </a>
               <button onClick={handleSaveAlbum} className="text-[#8B7355] text-[15px] font-medium hover:text-[#6B5335] py-2">완료</button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 pb-24 mt-4 no-scrollbar">
+            <div className="flex-1 overflow-y-auto px-5 pb-[130px] mt-8 no-scrollbar">
               <input type="file" multiple={!albumForm.id} accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
               <div 
                 onClick={() => fileInputRef.current?.click()} 
@@ -1446,35 +1520,23 @@
       };
 
       // --- 최종 렌더 ---
-      
-      const tabsOrder = ['customer', 'inquiries', 'calendar', 'album', 'task'];
-      const activeTabIndex = tabsOrder.indexOf(activeTab);
-
       return (
-        <div className="w-full min-h-[100dvh] h-[100dvh] bg-[#DCD6CC] flex flex-col items-center font-sans overflow-hidden">
-          <div className="w-full h-full max-w-md bg-[#FCFBF9] shadow-2xl relative flex flex-col overflow-hidden mx-auto">
+        <div className="w-full h-screen bg-[#DCD6CC] flex justify-center font-sans">
+          <div 
+             className="w-full h-full max-w-md bg-[#FCFBF9] shadow-[0_0_50px_rgba(0,0,0,0.15)] relative flex flex-col overflow-hidden"
+             onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
+          >
             
-            {/* Main Content Area (Slider) */}
-            <div 
-              className="flex-1 relative overflow-hidden page-slider"
-              onTouchStart={onTouchStartEvent} 
-              onTouchMove={onTouchMoveEvent} 
-              onTouchEnd={onTouchEndEvent}
-            >
-              <div 
-                className="w-full h-full flex transition-transform duration-300 ease-out"
-                style={{ transform: `translateX(-${activeTabIndex * 100}%)` }}
-              >
-                <div className="w-full h-full shrink-0 flex flex-col relative">{renderCustomerTab()}</div>
-                <div className="w-full h-full shrink-0 flex flex-col relative">{renderInquiriesTab()}</div>
-                <div className="w-full h-full shrink-0 flex flex-col relative">{renderCalendar()}</div>
-                <div className="w-full h-full shrink-0 flex flex-col relative">{renderAlbumTab()}</div>
-                <div className="w-full h-full shrink-0 flex flex-col relative">{renderTaskTab()}</div>
-              </div>
+            <div className="flex-1 relative flex flex-col overflow-hidden">
+              {activeTab === 'customer' && renderCustomerTab()}
+              {activeTab === 'inquiries' && renderInquiriesTab()}
+              {activeTab === 'calendar' && renderCalendar()}
+              {activeTab === 'album' && renderAlbumTab()}
+              {activeTab === 'task' && renderTaskTab()}
             </div>
 
             {/* Bottom Navigation */}
-            <div className="w-full bg-[#FCFBF9] border-t border-[#E8E4DB] grid grid-cols-5 px-1 pt-2 pb-[calc(env(safe-area-inset-bottom)+8px)] z-30 shrink-0">
+            <div className="absolute bottom-0 w-full h-[84px] bg-[#FCFBF9] border-t border-[#E8E4DB] grid grid-cols-5 px-1 pb-[env(safe-area-inset-bottom)] z-30 shrink-0">
               <button onClick={() => setActiveTab('customer')} className={`flex flex-col items-center justify-center space-y-1.5 transition-colors relative ${activeTab === 'customer' ? 'text-[#8B7355]' : 'text-[#A8A29D] hover:text-[#7A746F]'}`}>
                 {activeTab === 'customer' && <div className="absolute top-0 w-8 h-[2px] bg-[#8B7355]"></div>}
                 <Users size={22} strokeWidth={activeTab === 'customer' ? 1.5 : 1} />
