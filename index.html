@@ -488,8 +488,7 @@
           if (navigator.canShare && navigator.canShare({ files: filesArray })) {
              await navigator.share({
                files: filesArray,
-               title: 'Patek Philippe Album',
-               text: '선택하신 사진입니다.'
+               title: 'Patek Philippe Album'
              });
              setSelectedAlbumIds([]);
           } else {
@@ -905,6 +904,21 @@
       const renderAlbumTab = () => {
         let filteredAlbums = albums.filter(a => albumFilter === '전체' || a.category === albumFilter);
         
+        const handleDeleteSelectedAlbums = () => {
+          setConfirmDialog({
+             isOpen: true,
+             message: `선택하신 ${selectedAlbumIds.length}장의 사진을\n삭제하시겠습니까?`,
+             onConfirm: async () => {
+                if (user && db && user.uid !== 'local-test-user') {
+                   const promises = selectedAlbumIds.map(id => deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'albums', id)));
+                   await Promise.all(promises);
+                }
+                setSelectedAlbumIds([]);
+                setConfirmDialog({ isOpen: false, message: '', onConfirm: null });
+             }
+          });
+        };
+
         const safeQuery = String(albumSearchQuery || '').toLowerCase().replace(/[\s-]/g, '');
 
         if (safeQuery) {
@@ -985,7 +999,11 @@
                    <button onClick={() => setSelectedAlbumIds([])} className="text-[#DCD6CC] hover:text-white transition-colors"><X size={20} /></button>
                    <span className="font-sans font-bold text-[13px]">{selectedAlbumIds.length}장 선택됨</span>
                 </div>
-                <div className="flex gap-6">
+                <div className="flex gap-5">
+                   <button onClick={handleDeleteSelectedAlbums} className="flex flex-col items-center gap-1 text-[#FF453A] hover:text-[#FF6961] transition-colors">
+                     <Trash2 size={20} />
+                     <span className="text-[10px] font-sans">삭제</span>
+                   </button>
                    <button onClick={handleShareOrSave} className="flex flex-col items-center gap-1 hover:text-[#DCD6CC] transition-colors">
                      <Share2Icon size={20} />
                      <span className="text-[10px] font-sans">공유</span>
