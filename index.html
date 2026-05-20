@@ -2,40 +2,30 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <!-- viewport-fit=cover를 추가하여 아이폰 노치 디자인 등에서 상하단 여백을 완벽히 컨트롤합니다 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>PATEK PHILIPPE</title>
   
-  <!-- 모바일 홈 화면 추가 시 아이콘 및 앱 이름 설정 -->
   <link rel="apple-touch-icon" href="./logo.png">
   <meta name="apple-mobile-web-app-title" content="PATEK PHILIPPE">
   <meta name="application-name" content="PATEK PHILIPPE">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   
-  <!-- Tailwind CSS 로드 -->
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <!-- React & ReactDOM 로드 -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  
-  <!-- 브라우저용 Babel 번역기 로드 -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   
   <style>
-    /* 폰트를 맑은 고딕으로 변경 */
     body { margin: 0; padding: 0; background-color: #DCD6CC; font-family: "Malgun Gothic", sans-serif; }
-    /* 스크롤바 숨김 처리 */
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     
-    /* 숫자 입력창의 스피너 숨김 */
     input[type="number"]::-webkit-inner-spin-button, 
     input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     input[type="number"] { -moz-appearance: textfield; }
     
-    /* Tailwind의 font-serif 클래스를 맑은 고딕으로 덮어쓰기 */
     .font-serif { font-family: "Malgun Gothic", sans-serif !important; }
     .font-sans { font-family: "Malgun Gothic", sans-serif !important; }
   </style>
@@ -43,7 +33,6 @@
 <body>
   <div id="root"></div>
 
-  <!-- type="text/babel"을 통해 브라우저가 React 문법을 해석하게 합니다 -->
   <script type="text/babel" data-type="module">
     
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
@@ -117,16 +106,31 @@
         ? firebaseConfig.projectId 
         : (typeof __app_id !== 'undefined' ? __app_id : 'patek-philippe-app');
 
+    // 파텍필립 자동완성 모델 리스트 (가상의 데이터베이스)
+    const PATEK_REFS = [
+      "5711/1A-010", "5711/1A-014", "5711/1R-001", "5712/1A-001", "5712R-001", "5712G-001",
+      "5726A-001", "5726/1A-014", "5980/1R-001", "5980R-001", "5990/1A-011", "5990/1R-001",
+      "5811/1G-001", "5167A-001", "5167R-001", "5168G-001", "5168G-010", "5968A-001", "5968G-001",
+      "5968G-010", "5226G-001", "5326G-001", "5205G-013", "5205R-011", "5905/1A-001", "5905R-001",
+      "5924G-001", "5924G-010", "5320G-011", "5172G-010", "5270P-014", "5270J-001", "5236P-001",
+      "6119R-001", "6119G-001", "5227J-001", "5227R-001", "5227G-010", "4947/1A-001", "7118/1A-001",
+      "7118/1A-010", "7118/1A-011", "7118/1200A-001", "7118/1200A-010", "7118/1200A-011",
+      "5396G-011", "5396R-011", "6102P-001", "6102R-001", "5212A-001"
+    ];
+
     const getNextDayStr = (dateStr) => {
       const [y, m, d] = dateStr.split('-').map(Number);
       const date = new Date(y, m - 1, d + 1);
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     };
-    const formatBirthDate = (value) => {
+    const formatDateInput = (value) => {
       const numbers = value.replace(/\D/g, ''); 
       if (numbers.length <= 4) return numbers;
       if (numbers.length <= 6) return `${numbers.slice(0, 4)}.${numbers.slice(4)}`;
       return `${numbers.slice(0, 4)}.${numbers.slice(4, 6)}.${numbers.slice(6, 8)}`;
+    };
+    const formatBirthDate = (value) => {
+      return formatDateInput(value);
     };
     const formatPhoneNumber = (value) => {
       const numbers = value.replace(/\D/g, ''); 
@@ -177,7 +181,6 @@
       });
     };
 
-    // Base64를 File 객체로 변환 (공유 시트를 통한 갤러리 저장용)
     const base64ToFile = async (dataUrl, filename) => {
       const res = await fetch(dataUrl);
       const blob = await res.blob();
@@ -233,7 +236,6 @@
     };
 
     function WorkApp() {
-      // Auth State
       const [user, setUser] = useState(null);
       const [isLoggedIn, setIsLoggedIn] = useState(false);
       const [isLoading, setIsLoading] = useState(false);
@@ -243,18 +245,15 @@
       const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null });
       const fileInputRef = useRef(null);
       
-      // 스와이프 삭제(Swipe-to-delete) 상태
       const [swipedItemId, setSwipedItemId] = useState(null);
       const touchState = useRef({ startX: 0, startY: 0, isScrolling: false });
 
-      // --- DB Data States ---
       const [events, setEvents] = useState([]);
       const [customers, setCustomers] = useState([]);
       const [inquiries, setInquiries] = useState([]);
       const [tasks, setTasks] = useState([]);
       const [albums, setAlbums] = useState([]);
 
-      // --- Local Filter/Sort States ---
       const [currentDate, setCurrentDate] = useState(new Date());
       const [searchQuery, setSearchQuery] = useState('');
       const [sortOrder, setSortOrder] = useState('amount_desc');
@@ -269,7 +268,6 @@
       const [albumFilter, setAlbumFilter] = useState('전체');
       const [selectedAlbumIds, setSelectedAlbumIds] = useState([]);
 
-      // --- Modals State ---
       const [isAddModalOpen, setIsAddModalOpen] = useState(false);
       const [isViewModalOpen, setIsViewModalOpen] = useState(false);
       const [selectedEvent, setSelectedEvent] = useState(null);
@@ -283,6 +281,9 @@
       const [isAlbumModalOpen, setIsAlbumModalOpen] = useState(false);
       const [albumForm, setAlbumForm] = useState(null);
       const [formData, setFormData] = useState({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'yellow' });
+      
+      // 문의사항 REF 자동완성용 상태
+      const [focusedRefIndex, setFocusedRefIndex] = useState(null);
 
       useEffect(() => {
         if (!auth) return;
@@ -376,7 +377,6 @@
         const diffX = touchState.current.startX - currentX;
         const diffY = Math.abs(touchState.current.startY - currentY);
 
-        // 상하 스크롤이 더 크면 스와이프 무시
         if (diffY > 20) {
           touchState.current.isScrolling = true;
           return;
@@ -395,7 +395,6 @@
         if (swipedItemId) setSwipedItemId(null);
       };
 
-      // 공통 헬퍼 메서드
       const getDaysInMonthFunc = (year, month) => new Date(year, month + 1, 0).getDate();
       const getFirstDayOfMonthFunc = (year, month) => new Date(year, month, 1).getDay();
       const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
@@ -471,7 +470,6 @@
         else setSelectedAlbumIds([...selectedAlbumIds, id]);
       };
 
-      // 공유 또는 저장 (모바일 네이티브 창 띄우기)
       const handleShareOrSave = async () => {
         if (selectedAlbumIds.length === 0) return;
         
@@ -494,13 +492,11 @@
              throw new Error("공유/저장을 지원하지 않는 브라우저입니다.");
           }
         } catch (error) {
-          // 사용자가 공유 창에서 취소를 누른 경우 에러 무시
           if (error.name === 'AbortError' || (error.message && error.message.includes('canceled'))) {
              return;
           }
           console.log("Share API error:", error);
           
-          // 브라우저에서 지원하지 않는 경우 일반 다운로드 실행 (Fallback)
           selectedAlbumIds.forEach(id => {
             const album = albums.find(a => a.id === id);
             if (album) {
@@ -620,7 +616,6 @@
                 {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => <div key={day} className={`py-4 text-center text-[13px] tracking-widest font-serif ${idx === 0 ? 'text-[#A06C6C]' : 'text-[#6B635C]'}`}>{day}</div>)}
               </div>
               
-              {/* 달력 스크롤 영역 */}
               <div className="flex-1 overflow-y-auto px-5 pb-8 no-scrollbar relative z-0">
                 {calendarWeeks.map((wDates, wIdx) => {
                   let weekEvents = events.filter(e => { const eStart = e.date; const eEnd = e.endDate || e.date; return eStart <= wDates[6] && eEnd >= wDates[0]; });
@@ -764,12 +759,10 @@
 
                 return (
                   <div key={customer.id} className="relative bg-white border-b border-[#F2EFE8] overflow-hidden">
-                    {/* 삭제 버튼 배경 */}
                     <div className="absolute right-0 top-0 bottom-0 w-[80px] bg-[#FF3B30] flex flex-col items-center justify-center text-white cursor-pointer shadow-inner" onClick={(e) => handleDeleteCustomer(e, customer.id)}>
                       <Trash2 size={24} />
                       <span className="text-[11px] font-sans font-medium mt-1">삭제</span>
                     </div>
-                    {/* 컨텐츠 (스와이프 시 이동) */}
                     <div 
                       className="grid grid-cols-[1.5fr_1fr_1.5fr] px-5 py-4 bg-white items-center cursor-pointer hover:bg-[#FDFBF7] transition-transform duration-300 ease-out"
                       style={{ transform: isSwiped ? 'translateX(-80px)' : 'translateX(0px)' }}
@@ -867,12 +860,10 @@
                 const isSwiped = swipedItemId === inquiry.id;
                 return (
                   <div key={inquiry.id} className="relative bg-white border-b border-[#F2EFE8] overflow-hidden">
-                     {/* 삭제 버튼 배경 */}
                      <div className="absolute right-0 top-0 bottom-0 w-[80px] bg-[#FF3B30] flex flex-col items-center justify-center text-white cursor-pointer shadow-inner" onClick={(e) => handleDeleteInquiry(e, inquiry.id)}>
                         <Trash2 size={24} />
                         <span className="text-[11px] font-sans font-medium mt-1">삭제</span>
                      </div>
-                     {/* 컨텐츠 (스와이프 시 이동) */}
                      <div 
                         className="grid grid-cols-[1.2fr_1fr_1fr] px-5 py-4 bg-white items-center cursor-pointer hover:bg-[#FDFBF7] transition-transform duration-300 ease-out"
                         style={{ transform: isSwiped ? 'translateX(-80px)' : 'translateX(0px)' }}
@@ -893,7 +884,12 @@
               {filteredInquiries.length === 0 && <div className="flex justify-center items-center h-32 text-[#A8A29D] font-serif">검색된 정보가 없습니다.</div>}
             </div>
 
-            <button onClick={() => { setInquiryForm({ id: '', date: new Date().toISOString().split('T')[0], type: '신규', customerName: '', birthDate: '', customerPhone: '', job: '', notes: '', memo: '', items: [] }); setIsInquiryModalOpen(true); }} className="absolute bottom-[24px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
+            <button onClick={() => { 
+                const todayFormatted = new Date().toISOString().split('T')[0].replace(/-/g, '.');
+                setInquiryForm({ id: '', date: todayFormatted, type: '신규', customerName: '', birthDate: '', customerPhone: '', job: '', notes: '', memo: '', items: [] }); 
+                setIsInquiryModalOpen(true); 
+              }} 
+              className="absolute bottom-[24px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
               <Plus size={26} strokeWidth={1.2} />
             </button>
           </div>
@@ -1326,6 +1322,7 @@
 
         const handleSaveInquiry = async () => {
           if (!inquiryForm.customerName.trim()) { setAlertMessage("고객명을 입력해주세요."); return; }
+          if (!inquiryForm.date.trim()) { setAlertMessage("문의일자를 입력해주세요."); return; }
           const payload = { ...inquiryForm };
           const targetId = payload.id;
           delete payload.id; 
@@ -1334,7 +1331,7 @@
              if (targetId) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'inquiries', targetId), payload);
              else await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'inquiries'), payload);
           }
-          setIsInquiryModalOpen(false); setInquiryForm(null);
+          setIsInquiryModalOpen(false); setInquiryForm(null); setFocusedRefIndex(null);
         };
 
         const updateInquiryItem = (itemId, field, value) => {
@@ -1370,7 +1367,7 @@
         return (
           <div className="absolute inset-0 bg-[#FCFBF9] z-[100] flex flex-col font-sans animate-in slide-in-from-bottom-5">
             <div className="flex justify-between items-center px-5 pt-8 pb-4 bg-[#FCFBF9] sticky top-0 z-20 shrink-0">
-              <button onClick={() => setIsInquiryModalOpen(false)} className="text-[#8A847E] text-[15px] hover:text-[#4A443F] py-2">취소</button>
+              <button onClick={() => { setIsInquiryModalOpen(false); setFocusedRefIndex(null); }} className="text-[#8A847E] text-[15px] hover:text-[#4A443F] py-2">취소</button>
               <a href="https://www.patek.com/en" target="_blank" rel="noopener noreferrer" className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center top-6">
                  <img src="./logo.png" alt="Logo" className="w-12 h-12 object-contain" />
                  <span className="font-serif text-[18px] text-[#3A3532] -mt-1">Wish List</span>
@@ -1401,6 +1398,32 @@
                     <ChevronRight size={14} className="absolute right-1 top-1/2 -translate-y-1/2 text-[#A8A29D] pointer-events-none rotate-90" />
                   </div>
                 </div>
+
+                <div className="flex items-center py-3 border-b border-[#F2EFE8]">
+                  <span className="text-[13px] text-[#8A847E] w-[55px] shrink-0">문의일자</span>
+                  <div className="flex-1 flex items-center gap-2">
+                     <input 
+                       type="text" 
+                       value={inquiryForm.date} 
+                       onChange={(e) => setInquiryForm({...inquiryForm, date: formatDateInput(e.target.value)})} 
+                       className="bg-transparent outline-none text-[#2C2724] text-sm flex-1 tracking-tight" 
+                       placeholder="YYYY.MM.DD" 
+                       maxLength="10" 
+                     />
+                     <div className="relative flex items-center justify-center w-6 h-6">
+                        <CalendarDays size={18} className="text-[#A8A29D] pointer-events-none" />
+                        {/* Native Date Picker Overlay */}
+                        <input 
+                           type="date" 
+                           className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                           onChange={(e) => {
+                             if(e.target.value) setInquiryForm({...inquiryForm, date: e.target.value.replace(/-/g, '.')});
+                           }}
+                        />
+                     </div>
+                  </div>
+                </div>
+
                 <div className="flex items-center py-3 border-b border-[#F2EFE8]">
                   <span className="text-[13px] text-[#8A847E] w-[55px] shrink-0">고객명</span>
                   <input type="text" value={inquiryForm.customerName} onChange={(e) => setInquiryForm({...inquiryForm, customerName: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-[50px]" placeholder="이름" />
@@ -1430,18 +1453,53 @@
                 <h3 className="font-serif font-bold text-[#3A3532] text-[15px]">구매 희망 제품</h3>
               </div>
               <div className="bg-white border border-[#E8E4DB] rounded-xl overflow-hidden shadow-[0_2px_10px_rgba(0,0,0,0.02)] mb-8">
-                <div className="overflow-x-auto no-scrollbar" onTouchStart={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()}>
+                <div className="overflow-x-visible no-scrollbar" onTouchStart={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()}>
                   <div className="min-w-[500px]">
-                    <div className="grid grid-cols-[30px_1.2fr_1.2fr_1.2fr_1.2fr_30px] text-[11px] text-[#8A847E] bg-[#FDFBF7] py-2 border-b border-[#E8E4DB] text-center">
+                    <div className="grid grid-cols-[30px_1.2fr_1.4fr_1.2fr_1.2fr_30px] text-[11px] text-[#8A847E] bg-[#FDFBF7] py-2 border-b border-[#E8E4DB] text-center">
                       <div></div><div>날짜</div><div>REF.</div><div>제시일</div><div>비고</div><div>삭제</div>
                     </div>
                     {sortedItems.map((item) => (
-                      <div key={item.id} className={`grid grid-cols-[30px_1.2fr_1.2fr_1.2fr_1.2fr_30px] border-b border-[#F2EFE8] items-center text-[12px] transition-all duration-300 ${item.isCompleted ? 'bg-[#F9F8F6] text-[#A8A29D] opacity-70 line-through' : 'text-[#4A443F]'}`}>
+                      <div key={item.id} className={`grid grid-cols-[30px_1.2fr_1.4fr_1.2fr_1.2fr_30px] border-b border-[#F2EFE8] items-center text-[12px] transition-all duration-300 relative ${item.isCompleted ? 'bg-[#F9F8F6] text-[#A8A29D] opacity-70 line-through' : 'text-[#4A443F]'}`}>
                         <div className="flex justify-center p-2">
                           <input type="checkbox" checked={item.isCompleted} onChange={(e) => updateInquiryItem(item.id, 'isCompleted', e.target.checked)} className="w-[14px] h-[14px] accent-[#8B7355] cursor-pointer" />
                         </div>
                         <input type="text" value={item.date} onChange={(e) => updateInquiryItem(item.id, 'date', e.target.value)} disabled={item.isCompleted} placeholder="YYYY-MM-DD" className="w-full bg-transparent text-center py-3 outline-none" />
-                        <input type="text" value={item.ref} onChange={(e) => updateInquiryItem(item.id, 'ref', e.target.value)} disabled={item.isCompleted} placeholder="REF" className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" />
+                        
+                        {/* 자동완성 기능이 추가된 REF 입력칸 */}
+                        <div className="relative border-l border-[#F2EFE8] h-full flex flex-col justify-center">
+                            <input 
+                              type="text" 
+                              value={item.ref} 
+                              onChange={(e) => updateInquiryItem(item.id, 'ref', e.target.value.toUpperCase())} 
+                              onFocus={() => setFocusedRefIndex(item.id)}
+                              onBlur={() => setFocusedRefIndex(null)}
+                              disabled={item.isCompleted} 
+                              placeholder="REF" 
+                              className="w-full bg-transparent text-center py-3 outline-none" 
+                            />
+                            {/* 드롭다운 영역 */}
+                            {focusedRefIndex === item.id && item.ref.length > 0 && (
+                                <div className="absolute top-[90%] left-1/2 -translate-x-1/2 w-[140px] bg-white border border-[#E8E4DB] z-[150] max-h-[160px] overflow-y-auto shadow-xl rounded-md">
+                                    {PATEK_REFS.filter(r => r.includes(item.ref)).map(match => (
+                                        <div
+                                           key={match}
+                                           className="px-3 py-2 text-center text-[12px] hover:bg-[#F2EFE8] cursor-pointer text-[#4A443F] font-sans transition-colors"
+                                           onMouseDown={(e) => {
+                                               e.preventDefault(); // onBlur 방지
+                                               updateInquiryItem(item.id, 'ref', match);
+                                               setFocusedRefIndex(null);
+                                           }}
+                                        >
+                                           {match}
+                                        </div>
+                                    ))}
+                                    {PATEK_REFS.filter(r => r.includes(item.ref)).length === 0 && (
+                                        <div className="px-3 py-2 text-center text-[11px] text-[#A8A29D]">검색 결과 없음</div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
                         <input type="text" value={item.proposedDate} onChange={(e) => updateInquiryItem(item.id, 'proposedDate', e.target.value)} disabled={item.isCompleted} placeholder="제시일" className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" />
                         <input type="text" value={item.note} onChange={(e) => updateInquiryItem(item.id, 'note', e.target.value)} disabled={item.isCompleted} placeholder="비고" className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" />
                         <div className="border-l border-[#F2EFE8] h-full flex items-center justify-center">
@@ -1615,7 +1673,6 @@
               {activeTab === 'task' && renderTaskTab()}
             </div>
 
-            {/* Bottom Navigation */}
             <div className="w-full bg-[#FCFBF9] border-t border-[#E8E4DB] grid grid-cols-5 px-1 pb-[calc(env(safe-area-inset-bottom)+8px)] pt-3 shrink-0 z-30">
               <button onClick={() => setActiveTab('customer')} className={`flex flex-col items-center justify-start space-y-1 transition-colors relative ${activeTab === 'customer' ? 'text-[#8B7355]' : 'text-[#A8A29D] hover:text-[#7A746F]'}`}>
                 {activeTab === 'customer' && <div className="absolute -top-3 w-12 h-[3px] bg-[#8B7355] rounded-b-md"></div>}
@@ -1648,7 +1705,6 @@
               </button>
             </div>
 
-            {/* Modals & Alerts */}
             {renderAddModal()}
             {renderViewModal()}
             {renderCustomerModal()}
