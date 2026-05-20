@@ -181,11 +181,11 @@
     };
 
     const CATEGORIES = [
-      { id: 'cat_sales', label: '판매', color: 'bg-[#FFCDD2]', textColor: 'text-[#3A3532]', border: 'border-[#E5B8BD]' },
-      { id: 'cat_customer', label: '고객', color: 'bg-[#FFFF8D]', textColor: 'text-[#3A3532]', border: 'border-[#E6E67E]' },
-      { id: 'cat_hq', label: '본사', color: 'bg-[#90CAF9]', textColor: 'text-[#3A3532]', border: 'border-[#81B5DF]' },
-      { id: 'cat_store', label: '매장', color: 'bg-[#CCFF90]', textColor: 'text-[#3A3532]', border: 'border-[#B7E681]' },
-      { id: 'cat_event', label: '행사', color: 'bg-[#84FFFF]', textColor: 'text-[#3A3532]', border: 'border-[#76E5E5]' }
+      { id: 'sale', label: '판매', color: 'bg-[#FFCDD2]', textColor: 'text-[#3A3532]', border: 'border-[#E6B8BD]' },
+      { id: 'customer', label: '고객', color: 'bg-[#FFFF8D]', textColor: 'text-[#3A3532]', border: 'border-[#E6E67F]' },
+      { id: 'hq', label: '본사', color: 'bg-[#90CAF9]', textColor: 'text-[#3A3532]', border: 'border-[#82B6E0]' },
+      { id: 'store', label: '매장', color: 'bg-[#CCFF90]', textColor: 'text-[#3A3532]', border: 'border-[#B8E681]' },
+      { id: 'event', label: '행사', color: 'bg-[#84FFFF]', textColor: 'text-[#3A3532]', border: 'border-[#77E6E6]' }
     ];
 
     const TASK_CATEGORIES = [
@@ -273,7 +273,7 @@
       const [taskForm, setTaskForm] = useState(null);
       const [isAlbumModalOpen, setIsAlbumModalOpen] = useState(false);
       const [albumForm, setAlbumForm] = useState(null);
-      const [formData, setFormData] = useState({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'cat_sales' });
+      const [formData, setFormData] = useState({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'sale' });
       
       // 문의사항 REF 자동완성용 상태
       const [focusedRefIndex, setFocusedRefIndex] = useState(null);
@@ -394,7 +394,7 @@
       const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
       
       const handleDayClick = (dateStr) => {
-        setFormData({ id: '', date: dateStr, endDate: '', title: '', content: '', categoryId: 'cat_sales' });
+        setFormData({ id: '', date: dateStr, endDate: '', title: '', content: '', categoryId: 'sale' });
         setIsMultiDay(false);
         setIsAddModalOpen(true);
       };
@@ -537,7 +537,7 @@
         }
         
         setIsAddModalOpen(false); setIsMultiDay(false);
-        setFormData({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'cat_sales' });
+        setFormData({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'sale' });
       };
 
       if (!isLoggedIn) {
@@ -671,7 +671,7 @@
               </div>
             </div>
             
-            <button onClick={() => { setFormData({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'cat_sales' }); setIsAddModalOpen(true); }} className="absolute bottom-[24px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
+            <button onClick={() => { setFormData({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'sale' }); setIsAddModalOpen(true); }} className="absolute bottom-[24px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
               <Plus size={26} strokeWidth={1.2} />
             </button>
           </div>
@@ -1150,7 +1150,7 @@
         if (!isViewModalOpen || !selectedEvent) return null;
         const displayDate = selectedEvent.endDate ? `${selectedEvent.date} ~ ${selectedEvent.endDate}` : selectedEvent.date;
         const handleEditClick = () => {
-          setFormData({ id: selectedEvent.id, date: selectedEvent.date, endDate: selectedEvent.endDate || '', title: selectedEvent.title, content: selectedEvent.content, categoryId: selectedEvent.categoryId || 'cat_sales' });
+          setFormData({ id: selectedEvent.id, date: selectedEvent.date, endDate: selectedEvent.endDate || '', title: selectedEvent.title, content: selectedEvent.content, categoryId: selectedEvent.categoryId || 'sale' });
           setIsMultiDay(!!selectedEvent.endDate && selectedEvent.endDate !== selectedEvent.date);
           setIsViewModalOpen(false); setIsAddModalOpen(true);
         };
@@ -1543,6 +1543,148 @@
                   </div>
                 </div>
                 <button onClick={addInquiryItem} className="w-full py-3 bg-[#6B5A47] hover:bg-[#5A4B3A] text-white flex items-center justify-center gap-2 transition-colors"><Plus size={16} /> <span className="font-sans text-sm tracking-wide">추가하기</span></button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const renderAlbumModal = () => {
+        if (!isAlbumModalOpen || !albumForm) return null;
+
+        return (
+          <div className="absolute inset-0 bg-[#FCFBF9] z-[100] flex flex-col font-sans animate-in slide-in-from-bottom-5">
+            <div className="flex justify-between items-center px-5 pt-8 pb-4 bg-[#FCFBF9] sticky top-0 z-20 shrink-0">
+              <button onClick={() => setIsAlbumModalOpen(false)} className="text-[#8A847E] text-[15px] hover:text-[#4A443F] py-2">취소</button>
+              <a href="https://www.patek.com/en" target="_blank" rel="noopener noreferrer" className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center top-6">
+                 <img src="./logo.png" alt="Logo" className="w-12 h-12 object-contain" />
+                 <span className="font-serif text-[18px] text-[#3A3532] -mt-1">{albumForm.id ? 'Edit Photo' : 'Upload Photo'}</span>
+              </a>
+              <button onClick={handleSaveAlbum} className="text-[#8B7355] text-[15px] font-medium hover:text-[#6B5335] py-2">완료</button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-5 pb-8 mt-8 no-scrollbar">
+              <input type="file" multiple={!albumForm.id} accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
+              
+              <div className="flex overflow-x-auto gap-3 no-scrollbar mb-6 pb-2 px-1">
+                {albumForm.files && albumForm.files.length > 0 ? (
+                  albumForm.files.map((file, idx) => {
+                    const url = URL.createObjectURL(file);
+                    return (
+                      <div key={idx} className="relative w-28 h-28 shrink-0 rounded-[14px] overflow-hidden shadow-sm border border-[#E8E4DB]">
+                        <img src={url} className="w-full h-full object-cover" alt="preview" />
+                        <button onClick={(e) => { e.stopPropagation(); removeFile(idx); }} className="absolute top-1.5 right-1.5 bg-black/60 text-white rounded-full p-1"><X size={14} /></button>
+                      </div>
+                    );
+                  })
+                ) : albumForm.id ? (
+                  <div className="relative w-full h-[180px] shrink-0 rounded-[14px] overflow-hidden shadow-sm border border-[#E8E4DB]">
+                     <img src={albumForm.imageUrl} className="h-full w-full object-contain bg-[#FDFBF7]" alt="preview" />
+                  </div>
+                ) : null}
+                
+                {(!albumForm.id && (!albumForm.files || albumForm.files.length < 10)) && (
+                  <div 
+                    onClick={() => fileInputRef.current?.click()} 
+                    className={`shrink-0 border-[1.5px] border-dashed border-[#C2BDB5] rounded-[14px] flex flex-col items-center justify-center cursor-pointer hover:bg-[#FDFBF7] transition-colors ${albumForm.files && albumForm.files.length > 0 ? 'w-28 h-28' : 'w-full h-[180px]'}`}
+                  >
+                    <CameraIcon size={albumForm.files && albumForm.files.length > 0 ? 28 : 44} className="text-[#8B7355] mb-2" strokeWidth={1.5} />
+                    <p className="text-[#8A847E] font-sans text-[12px] text-center">추가</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2 mb-6 justify-center">
+                {['전체', '착용샷', '실물', '기타'].map(cat => (
+                   <button key={cat} onClick={() => setAlbumForm({...albumForm, category: cat})} className={`flex-1 py-2.5 rounded-[8px] text-[13px] font-sans whitespace-nowrap transition-colors border shadow-sm ${albumForm.category === cat ? 'bg-[#8B7355] text-white border-[#8B7355] font-medium' : 'bg-white text-[#8A847E] border-[#E8E4DB]'}`}>
+                     {cat}
+                   </button>
+                ))}
+              </div>
+
+              <div className="bg-white border border-[#E8E4DB] rounded-[14px] p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] mb-8">
+                <div className="flex flex-col py-3 border-b border-[#F2EFE8]">
+                  <span className="text-[13px] text-[#2C2724] font-medium mb-1.5 ml-1">사진명</span>
+                  <input type="text" value={albumForm.title} onChange={(e) => setAlbumForm({...albumForm, title: e.target.value})} className="bg-transparent outline-none text-[#4A443F] w-full text-sm px-1 py-1" placeholder="제목을 입력하세요" />
+                </div>
+                <div className="flex flex-col py-3 border-b border-[#F2EFE8]">
+                  <span className="text-[13px] text-[#2C2724] font-medium mb-1.5 ml-1">REF.</span>
+                  <input type="text" value={albumForm.ref} onChange={(e) => setAlbumForm({...albumForm, ref: e.target.value})} className="bg-transparent outline-none text-[#4A443F] w-full text-sm px-1 py-1" placeholder="레퍼런스 넘버 입력" />
+                </div>
+                <div className="flex flex-col pt-3 pb-1">
+                  <span className="text-[13px] text-[#2C2724] font-medium mb-2 ml-1">메모</span>
+                  <textarea value={albumForm.memo} onChange={(e) => setAlbumForm({...albumForm, memo: e.target.value})} className="bg-transparent outline-none text-[#4A443F] w-full text-sm resize-none h-[70px] px-1" placeholder="메모를 입력하세요"></textarea>
+                </div>
+              </div>
+              
+              {albumForm.id && (
+                <button onClick={handleDeleteAlbum} className="w-full py-4 mt-2 mb-8 bg-white border border-[#E8D8D8] text-[#A06C6C] rounded-[14px] font-serif text-sm tracking-widest hover:bg-[#FFF5F5] transition-colors shadow-sm">
+                  이 사진 삭제하기
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      };
+
+      const renderTaskModal = () => {
+        if (!isTaskModalOpen || !taskForm) return null;
+        const isExisting = tasks.some(t => t.id === taskForm.id);
+
+        const handleSaveTask = async () => {
+          if (!taskForm.title.trim()) { setAlertMessage("업무 내용을 입력해주세요."); return; }
+          const payload = { ...taskForm };
+          const targetId = payload.id;
+          delete payload.id; 
+          
+          if (user.uid !== 'local-test-user') {
+             if (isExisting && targetId) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'tasks', targetId), payload);
+             else await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'tasks'), { ...payload, isCompleted: false, isStarred: false });
+          }
+          setIsTaskModalOpen(false); setTaskForm(null);
+        };
+
+        const handleDeleteTask = async () => { 
+           if (user.uid !== 'local-test-user') await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'tasks', taskForm.id));
+           setIsTaskModalOpen(false); setTaskForm(null); 
+        };
+
+        return (
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm z-[100] flex flex-col justify-end">
+            <div className="bg-[#FCFBF9] relative z-[101] rounded-t-3xl p-7 w-full animate-in slide-in-from-bottom-full duration-300 shadow-[0_-15px_40px_rgba(0,0,0,0.15)] border-t border-[#E8E4DB] max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-7">
+                <h3 className="text-xl font-serif tracking-widest text-[#3A3532]">{isExisting ? '업무 수정' : '새로운 업무'}</h3>
+                <button onClick={() => setIsTaskModalOpen(false)} className="p-2 rounded-full hover:bg-[#F2EFE8] transition-colors"><X size={22} className="text-[#8A847E]" strokeWidth={1.5} /></button>
+              </div>
+              <div className="space-y-7">
+                <div>
+                  <label className="block text-[11px] font-medium tracking-widest text-[#8A847E] mb-2 uppercase font-sans">Date</label>
+                  <input type="date" value={taskForm.date} onChange={(e) => setTaskForm({...taskForm, date: e.target.value})} className="w-full bg-transparent border-b border-[#DCD6CC] py-2 text-[#4A443F] focus:border-[#8B7355] outline-none transition-all font-serif text-sm" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium tracking-widest text-[#8A847E] mb-3 uppercase font-sans">Category</label>
+                  <div className="flex gap-2">
+                    {TASK_CATEGORIES.map(cat => (
+                      <button key={cat.id} onClick={() => setTaskForm({...taskForm, category: cat.label})} className={`px-4 py-2 rounded-[6px] text-[12px] font-sans transition-all ${taskForm.category === cat.label ? `${cat.badgeClass} font-bold shadow-sm` : 'bg-white text-[#8A847E] border border-[#E8E4DB] hover:bg-[#F2EFE8]'}`}>{cat.label}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium tracking-widest text-[#8A847E] mb-2 uppercase font-sans">Title</label>
+                  <input type="text" placeholder="업무 내용을 입력하세요" value={taskForm.title} onChange={(e) => setTaskForm({...taskForm, title: e.target.value})} className="w-full bg-transparent border-b border-[#DCD6CC] py-2 text-[#4A443F] placeholder-[#C2BDB5] focus:border-[#8B7355] outline-none transition-all font-sans text-sm font-medium" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium tracking-widest text-[#8A847E] mb-2 uppercase font-sans">Memo</label>
+                  <textarea rows="3" placeholder="상세 내용을 입력하세요" value={taskForm.memo} onChange={(e) => setTaskForm({...taskForm, memo: e.target.value})} className="w-full bg-white border border-[#E8E4DB] rounded-sm shadow-sm p-4 text-[#4A443F] placeholder-[#C2BDB5] focus:ring-1 focus:ring-[#8B7355] focus:border-[#8B7355] outline-none transition-all resize-none text-sm font-serif leading-relaxed"></textarea>
+                </div>
+                {isExisting ? (
+                  <div className="flex gap-3 w-full mt-2">
+                    <button onClick={handleSaveTask} className="flex-1 bg-[#3A3532] hover:bg-[#2A2522] text-[#F3EFE8] font-serif tracking-widest py-4 rounded-sm transition-colors shadow-lg text-sm border border-[#2A2522]">수정 완료</button>
+                    <button onClick={handleDeleteTask} className="flex-1 bg-white hover:bg-[#FFF5F5] text-[#A06C6C] font-serif tracking-widest py-4 rounded-sm transition-colors border border-[#E8D8D8] text-sm shadow-sm">삭제</button>
+                  </div>
+                ) : (
+                  <button onClick={handleSaveTask} className="w-full bg-[#3A3532] hover:bg-[#2A2522] text-[#F3EFE8] font-serif tracking-widest py-4 rounded-sm mt-2 transition-colors shadow-lg text-sm border border-[#2A2522]">저장하기</button>
+                )}
               </div>
             </div>
           </div>
