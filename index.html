@@ -108,14 +108,7 @@
 
     // 파텍필립 자동완성 모델 리스트 (가상의 데이터베이스)
     const PATEK_REFS = [
-      "5711/1A-010", "5711/1A-014", "5711/1R-001", "5712/1A-001", "5712R-001", "5712G-001",
-      "5726A-001", "5726/1A-014", "5980/1R-001", "5980R-001", "5990/1A-011", "5990/1R-001",
-      "5811/1G-001", "5167A-001", "5167R-001", "5168G-001", "5168G-010", "5968A-001", "5968G-001",
-      "5968G-010", "5226G-001", "5326G-001", "5205G-013", "5205R-011", "5905/1A-001", "5905R-001",
-      "5924G-001", "5924G-010", "5320G-011", "5172G-010", "5270P-014", "5270J-001", "5236P-001",
-      "6119R-001", "6119G-001", "5227J-001", "5227R-001", "5227G-010", "4947/1A-001", "7118/1A-001",
-      "7118/1A-010", "7118/1A-011", "7118/1200A-001", "7118/1200A-010", "7118/1200A-011",
-      "5396G-011", "5396R-011", "6102P-001", "6102R-001", "5212A-001"
+      "5320G-011", "5327G-001", "5327R-001", "7140G-001", "7140R-001", "5236P-001", "5236P-010", "5236P-011", "5160/500R-001", "6159G-001", "5270/1R-001", "5270J-001", "5270P-014", "5270P-015", "5270P-016", "5270P-017", "5271P-010", "5271/11P-010", "5271/12P-010", "5470P-001", "5204G-001", "5204G-010", "5370R-001", "5373P-001", "6102R-001", "6102P-001", "6104R-001", "6104P-010", "6104/11P-010", "6104/12P-010", "6104/13P-010", "6105G-001", "5520RG-001", "5322G-001", "5322G-010", "5260/1455R-001", "5260/355R-001", "7040/250G-001", "5178G-012", "7047G-001", "5303R-001", "5304/301R-001", "5308G-001", "5316/50P-001", "5374G-001", "5374/300P-001", "5374/400P-001", "5531G-001", "6002R-001", "6301P-001", "6300GR-001", "6300/400G-001", "6300/401G-001", "6300/403G-001", "27000M-001", "5328G-001", "5212A-001", "5205G-013", "5205R-011", "5396G-017", "5396R-011", "5396R-016", "4946G-001", "4946R-001", "4947/1A-001", "4948G-010", "4948R-001", "5235/50R-001", "5326G-001", "5172G-001", "5172G-010", "5905/1A-001", "5905R-010", "5961R-010", "5961P-001", "5224R-001", "5524G-010", "5524R-001", "5231G-001", "5330G-001", "5930P-001", "7129J-001", "5935A-001", "7130G-016", "7130R-014", "5924G-001", "5924G-010", "7121/200G-001", "5180/1R-001", "5249R-001", "5088/100P-001", "5226G-001", "5227G-010", "5227G-015", "5227J-001", "5227R-001", "6007G-001", "6007G-010", "6007G-011", "6119G-001", "6119R-001", "6196P-001", "4997/200G-001", "4997/200R-001", "7200R-001", "7200/50G-001", "7200/50G-012", "7042/100R-010", "7042/100G-010", "5738/1R-001", "5738P-001", "5738R-001", "5738/51G-001", "5822P-001", "5821/1AR-001", "5821/1A-001", "7128/1G-001", "7128/1R-001", "5712/1R-001", "5726/1A-014", "5726A-001", "5811/1G-001", "5811/1460G-001", "5740/1G-001", "5980/1400G-010", "5980/1400R-011", "5980/60G-001", "5990/1A-011", "5990/1R-001", "5990/1400G-001", "5990/1421G-001", "5990/1422G-001", "5990/1423G-001", "7010/1G-013", "7010/1R-013", "7010G-013", "7010R-013", "7118/1A-001", "7118/1A-011", "7118/1200A-001", "7118/1200A-011", "7118/1R-001", "7118/1R-010", "7118/1200R-001", "7118/1200R-010", "7118/1300R-001", "7118/1450G-001", "7118/1450R-001", "7118/1451G-001", "7118/1452G-001", "7118/1453G-001", "5723/1R-001", "5723/1R-010", "5723/112R-001", "5711/110P-001", "5711/111P-001", "5711/112P-001", "5711/113P-001", "5810/1G-001", "5610/1P-001", "5810G-001", "958G-001", "5167A-001", "5167R-001", "5164G-001", "5164R-001", "5168G-001", "5168G-010", "5968A-001", "5968G-001", "5968G-010", "5968R-001", "5072R-001", "5261R-001", "5267/200A-001", "5267/200A-010", "5267/200A-011", "5268/200R-010", "5268/461G-001", "5269R-001", "7968/300R-001", "7300/1200R-001", "7300/1200A-001", "4910/1200A-001", "4910/1200A-010", "4910/1200A-011", "4910/1201R-010", "7300/1200A-010", "7300/1200R-010", "7340/1R-001", "973J-001", "980G-010", "980J-011", "980R-001", "983J-001", "5738/50J-011", "5077/100R-071", "5738/50G-029", "992/187G-001", "992/160G-001", "984/101J-001", "20191M-001", "21000M-001", "20171M-001"
     ];
 
     const getNextDayStr = (dateStr) => {
@@ -1295,7 +1288,26 @@
                     </div>
                     {customerForm.purchases.map((p, idx) => (
                       <div key={p.id} className="grid grid-cols-[1.3fr_1.3fr_0.7fr_1.6fr_1.2fr_40px] border-b border-[#F2EFE8] items-center text-[12px] text-[#4A443F]">
-                        <input type="text" value={p.date} onChange={(e) => updatePurchase(idx, 'date', e.target.value)} placeholder="YYYY-MM-DD" className="w-full bg-transparent text-center py-3 outline-none" />
+                        <div className="relative w-full h-full flex items-center justify-center">
+                          <input 
+                            type="text" 
+                            value={p.date} 
+                            onChange={(e) => updatePurchase(idx, 'date', formatDateInput(e.target.value))} 
+                            placeholder="YYYY.MM.DD" 
+                            maxLength="10"
+                            className="w-full bg-transparent text-center py-3 outline-none tracking-tight pl-2 pr-5" 
+                          />
+                          <div className="absolute right-0.5 w-5 h-5 flex items-center justify-center">
+                             <CalendarDays size={14} className="text-[#A8A29D] pointer-events-none" />
+                             <input 
+                                type="date" 
+                                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                onChange={(e) => {
+                                  if(e.target.value) updatePurchase(idx, 'date', e.target.value.replace(/-/g, '.'));
+                                }}
+                             />
+                          </div>
+                        </div>
                         <input type="text" value={p.ref} onChange={(e) => updatePurchase(idx, 'ref', e.target.value)} placeholder="REF" className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" />
                         <input type="number" value={p.qty} onChange={(e) => updatePurchase(idx, 'qty', e.target.value)} placeholder="0" className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" />
                         <div className="relative border-l border-[#F2EFE8] h-full flex items-center">
@@ -1463,7 +1475,28 @@
                         <div className="flex justify-center p-2">
                           <input type="checkbox" checked={item.isCompleted} onChange={(e) => updateInquiryItem(item.id, 'isCompleted', e.target.checked)} className="w-[14px] h-[14px] accent-[#8B7355] cursor-pointer" />
                         </div>
-                        <input type="text" value={item.date} onChange={(e) => updateInquiryItem(item.id, 'date', e.target.value)} disabled={item.isCompleted} placeholder="YYYY-MM-DD" className="w-full bg-transparent text-center py-3 outline-none" />
+                        <div className="relative w-full h-full flex items-center justify-center">
+                          <input 
+                            type="text" 
+                            value={item.date} 
+                            onChange={(e) => updateInquiryItem(item.id, 'date', formatDateInput(e.target.value))} 
+                            disabled={item.isCompleted} 
+                            placeholder="YYYY.MM.DD" 
+                            maxLength="10"
+                            className="w-full bg-transparent text-center py-3 outline-none tracking-tight pl-2 pr-5" 
+                          />
+                          <div className="absolute right-0.5 w-5 h-5 flex items-center justify-center">
+                             <CalendarDays size={14} className="text-[#A8A29D] pointer-events-none" />
+                             <input 
+                                type="date" 
+                                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                disabled={item.isCompleted}
+                                onChange={(e) => {
+                                  if(e.target.value) updateInquiryItem(item.id, 'date', e.target.value.replace(/-/g, '.'));
+                                }}
+                             />
+                          </div>
+                        </div>
                         
                         {/* 자동완성 기능이 추가된 REF 입력칸 */}
                         <div className="relative border-l border-[#F2EFE8] h-full flex flex-col justify-center">
