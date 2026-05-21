@@ -181,11 +181,11 @@
     };
 
     const CATEGORIES = [
-      { id: 'sale', label: '판매', color: 'bg-[#FFCDD2]', textColor: 'text-[#3A3532]', border: 'border-[#E6B8BD]' },
-      { id: 'customer', label: '고객', color: 'bg-[#FFFF8D]', textColor: 'text-[#3A3532]', border: 'border-[#E6E67F]' },
-      { id: 'hq', label: '본사', color: 'bg-[#90CAF9]', textColor: 'text-[#3A3532]', border: 'border-[#82B6E0]' },
-      { id: 'store', label: '매장', color: 'bg-[#CCFF90]', textColor: 'text-[#3A3532]', border: 'border-[#B8E681]' },
-      { id: 'event', label: '행사', color: 'bg-[#84FFFF]', textColor: 'text-[#3A3532]', border: 'border-[#77E6E6]' }
+      { id: 'yellow', label: '판매', color: 'bg-[#C29B44]', textColor: 'text-white', border: 'border-[#A38137]' },
+      { id: 'pink', label: '결제변경', color: 'bg-[#A85858]', textColor: 'text-white', border: 'border-[#874545]' },
+      { id: 'blue', label: '상담', color: 'bg-[#4B6A8E]', textColor: 'text-white', border: 'border-[#39526E]' },
+      { id: 'orange', label: '기타', color: 'bg-[#D17632]', textColor: 'text-white', border: 'border-[#AD5E24]' },
+      { id: 'lime', label: '업무', color: 'bg-[#6A7F58]', textColor: 'text-white', border: 'border-[#526344]' }
     ];
 
     const TASK_CATEGORIES = [
@@ -273,7 +273,7 @@
       const [taskForm, setTaskForm] = useState(null);
       const [isAlbumModalOpen, setIsAlbumModalOpen] = useState(false);
       const [albumForm, setAlbumForm] = useState(null);
-      const [formData, setFormData] = useState({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'sale' });
+      const [formData, setFormData] = useState({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'yellow' });
       
       // 문의사항 REF 자동완성용 상태
       const [focusedRefIndex, setFocusedRefIndex] = useState(null);
@@ -394,7 +394,7 @@
       const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
       
       const handleDayClick = (dateStr) => {
-        setFormData({ id: '', date: dateStr, endDate: '', title: '', content: '', categoryId: 'sale' });
+        setFormData({ id: '', date: dateStr, endDate: '', title: '', content: '', categoryId: 'yellow' });
         setIsMultiDay(false);
         setIsAddModalOpen(true);
       };
@@ -537,7 +537,7 @@
         }
         
         setIsAddModalOpen(false); setIsMultiDay(false);
-        setFormData({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'sale' });
+        setFormData({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'yellow' });
       };
 
       if (!isLoggedIn) {
@@ -671,7 +671,7 @@
               </div>
             </div>
             
-            <button onClick={() => { setFormData({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'sale' }); setIsAddModalOpen(true); }} className="absolute bottom-[24px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
+            <button onClick={() => { setFormData({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'yellow' }); setIsAddModalOpen(true); }} className="absolute bottom-[24px] right-6 w-14 h-14 bg-[#3A3532] text-[#F3EFE8] rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(58,53,50,0.3)] transition-transform active:scale-95 z-40 border border-[#2A2522]">
               <Plus size={26} strokeWidth={1.2} />
             </button>
           </div>
@@ -1150,7 +1150,7 @@
         if (!isViewModalOpen || !selectedEvent) return null;
         const displayDate = selectedEvent.endDate ? `${selectedEvent.date} ~ ${selectedEvent.endDate}` : selectedEvent.date;
         const handleEditClick = () => {
-          setFormData({ id: selectedEvent.id, date: selectedEvent.date, endDate: selectedEvent.endDate || '', title: selectedEvent.title, content: selectedEvent.content, categoryId: selectedEvent.categoryId || 'sale' });
+          setFormData({ id: selectedEvent.id, date: selectedEvent.date, endDate: selectedEvent.endDate || '', title: selectedEvent.title, content: selectedEvent.content, categoryId: selectedEvent.categoryId || 'yellow' });
           setIsMultiDay(!!selectedEvent.endDate && selectedEvent.endDate !== selectedEvent.date);
           setIsViewModalOpen(false); setIsAddModalOpen(true);
         };
