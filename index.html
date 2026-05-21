@@ -36,7 +36,7 @@
   <script type="text/babel" data-type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
     import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
-    import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+    import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
     const { useState, useEffect, useRef } = React;
 
@@ -108,7 +108,7 @@
         ? firebaseConfig.projectId 
         : (typeof __app_id !== 'undefined' ? __app_id : 'patek-philippe-app');
 
-    const DEFAULT_PATEK_REFS = [
+    const PATEK_REFS = [
       "5320G-011", "5327G-001", "5327R-001", "7140G-001", "7140R-001", "5236P-001", "5236P-010", "5236P-011", "5160/500R-001", "6159G-001", "5270/1R-001", "5270J-001", "5270P-014", "5270P-015", "5270P-016", "5270P-017", "5271P-010", "5271/11P-010", "5271/12P-010", "5470P-001", "5204G-001", "5204G-010", "5370R-001", "5373P-001", "6102R-001", "6102P-001", "6104R-001", "6104P-010", "6104/11P-010", "6104/12P-010", "6104/13P-010", "6105G-001", "5520RG-001", "5322G-001", "5322G-010", "5260/1455R-001", "5260/355R-001", "7040/250G-001", "5178G-012", "7047G-001", "5303R-001", "5304/301R-001", "5308G-001", "5316/50P-001", "5374G-001", "5374/300P-001", "5374/400P-001", "5531G-001", "6002R-001", "6301P-001", "6300GR-001", "6300/400G-001", "6300/401G-001", "6300/403G-001", "27000M-001", "5328G-001", "5212A-001", "5205G-013", "5205R-011", "5396G-017", "5396R-011", "5396R-016", "4946G-001", "4946R-001", "4947/1A-001", "4948G-010", "4948R-001", "5235/50R-001", "5326G-001", "5172G-001", "5172G-010", "5905/1A-001", "5905R-010", "5961R-010", "5961P-001", "5224R-001", "5524G-010", "5524R-001", "5231G-001", "5330G-001", "5930P-001", "7129J-001", "5935A-001", "7130G-016", "7130R-014", "5924G-001", "5924G-010", "7121/200G-001", "5180/1R-001", "5249R-001", "5088/100P-001", "5226G-001", "5227G-010", "5227G-015", "5227J-001", "5227R-001", "6007G-001", "6007G-010", "6007G-011", "6119G-001", "6119R-001", "6196P-001", "4997/200G-001", "4997/200R-001", "7200R-001", "7200/50G-001", "7200/50G-012", "7042/100R-010", "7042/100G-010", "5738/1R-001", "5738P-001", "5738R-001", "5738/51G-001", "5822P-001", "5821/1AR-001", "5821/1A-001", "7128/1G-001", "7128/1R-001", "5712/1R-001", "5726/1A-014", "5726A-001", "5811/1G-001", "5811/1460G-001", "5740/1G-001", "5980/1400G-010", "5980/1400R-011", "5980/60G-001", "5990/1A-011", "5990/1R-001", "5990/1400G-001", "5990/1421G-001", "5990/1422G-001", "5990/1423G-001", "7010/1G-013", "7010/1R-013", "7010G-013", "7010R-013", "7118/1A-001", "7118/1A-011", "7118/1200A-001", "7118/1200A-011", "7118/1R-001", "7118/1R-010", "7118/1200R-001", "7118/1200R-010", "7118/1300R-001", "7118/1450G-001", "7118/1450R-001", "7118/1451G-001", "7118/1452G-001", "7118/1453G-001", "5723/1R-001", "5723/1R-010", "5723/112R-001", "5711/110P-001", "5711/111P-001", "5711/112P-001", "5711/113P-001", "5810/1G-001", "5610/1P-001", "5810G-001", "958G-001", "5167A-001", "5167R-001", "5164G-001", "5164R-001", "5168G-001", "5168G-010", "5968A-001", "5968G-001", "5968G-010", "5968R-001", "5072R-001", "5261R-001", "5267/200A-001", "5267/200A-010", "5267/200A-011", "5268/200R-010", "5268/461G-001", "5269R-001", "7968/300R-001", "7300/1200R-001", "7300/1200A-001", "4910/1200A-001", "4910/1200A-010", "4910/1200A-011", "4910/1201R-010", "7300/1200A-010", "7300/1200R-010", "7340/1R-001", "973J-001", "980G-010", "980J-011", "980R-001", "983J-001", "5738/50J-011", "5077/100R-071", "5738/50G-029", "992/187G-001", "992/160G-001", "984/101J-001", "20191M-001", "21000M-001", "20171M-001"
     ];
 
@@ -248,9 +248,6 @@
       const [inquiries, setInquiries] = useState([]);
       const [tasks, setTasks] = useState([]);
       const [albums, setAlbums] = useState([]);
-      
-      const [patekRefs, setPatekRefs] = useState(DEFAULT_PATEK_REFS);
-      const [customRefsText, setCustomRefsText] = useState("");
 
       const [currentDate, setCurrentDate] = useState(new Date());
       const [searchQuery, setSearchQuery] = useState('');
@@ -361,15 +358,8 @@
         const unsubAlbums = onSnapshot(collection(db, 'artifacts', appId, 'users', uId, 'albums'), snap => {
           setAlbums(snap.docs.map(d => ({id: d.id, ...d.data()})));
         });
-        const unsubSettings = onSnapshot(doc(db, 'artifacts', appId, 'users', uId, 'settings', 'refs'), snap => {
-          if (snap.exists() && snap.data().items) {
-             setPatekRefs(snap.data().items);
-          } else {
-             setPatekRefs(DEFAULT_PATEK_REFS);
-          }
-        });
 
-        return () => { unsubEvents(); unsubCustomers(); unsubInquiries(); unsubTasks(); unsubAlbums(); unsubSettings(); };
+        return () => { unsubEvents(); unsubCustomers(); unsubInquiries(); unsubTasks(); unsubAlbums(); };
       }, [user, isLoggedIn]);
 
       const handleTouchStartItem = (e) => {
@@ -689,60 +679,6 @@
         setFormData({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'sale' });
       };
 
-      const handleInitDefaultRefs = async () => {
-        if (!user || user.uid === 'local-test-user') return;
-        setAlertMessage("기본 리스트를 DB에 일괄 등록 중입니다...");
-        try {
-            await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'refs'), {
-                items: DEFAULT_PATEK_REFS
-            });
-            setAlertMessage("완료되었습니다!\n설정에서 리스트를 관리할 수 있습니다.");
-        } catch(e) {
-            setAlertMessage("등록 중 오류가 발생했습니다.");
-        }
-      };
-
-      const handleAddCustomRefs = async () => {
-        if (!customRefsText.trim()) return;
-        const newRefs = customRefsText.split(',').map(s => s.trim().toUpperCase()).filter(s => s);
-        if (newRefs.length === 0) return;
-
-        const merged = Array.from(new Set([...patekRefs, ...newRefs]));
-        try {
-            await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'refs'), {
-                items: merged
-            });
-            setCustomRefsText("");
-            setAlertMessage(`${newRefs.length}개의 REF가 추가되었습니다.`);
-        } catch(e) {
-            setAlertMessage("추가 중 오류가 발생했습니다.");
-        }
-      };
-
-      const handleDeleteRef = async (refToRemove) => {
-        const filtered = patekRefs.filter(r => r !== refToRemove);
-        try {
-            await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'refs'), {
-                items: filtered
-            });
-        } catch(e) {
-            setAlertMessage("삭제 중 오류가 발생했습니다.");
-        }
-      };
-
-      const handleClearRefs = () => {
-        setConfirmDialog({
-            isOpen: true,
-            message: "모든 REF 리스트를 삭제하시겠습니까?",
-            onConfirm: async () => {
-                if(user && db && user.uid !== 'local-test-user') {
-                    await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'refs'), { items: [] });
-                }
-                setConfirmDialog({ isOpen: false, message: '', onConfirm: null });
-            }
-        });
-      };
-
       const renderSettingsTab = () => {
         return (
           <div className="flex flex-col h-full bg-[#FCFBF9] font-serif relative" onClick={closeSwipe}>
@@ -754,53 +690,7 @@
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 py-6 no-scrollbar">
-              <div className="bg-white border border-[#E8E4DB] rounded-xl p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] mb-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <SettingsIcon size={20} className="text-[#8B7355]" />
-                  <h3 className="font-serif font-bold text-[#3A3532] text-[16px]">REF. 자동완성 데이터 관리</h3>
-                </div>
-                <p className="text-[13px] text-[#8A847E] font-sans mb-5 leading-relaxed">
-                  Wish List 등록 시 사용되는 REF. 자동완성 리스트를 내 계정에 맞게 관리합니다. 최초 사용 시 아래의 <strong>[일괄 등록]</strong> 버튼을 눌러 기본 데이터를 불러오세요.
-                </p>
-
-                <button onClick={handleInitDefaultRefs} className="w-full bg-[#FDFBF7] hover:bg-[#F2EFE8] text-[#8B7355] border border-[#8B7355] font-sans font-medium text-[13px] py-3.5 rounded-[8px] transition-colors mb-6 shadow-sm">
-                  기본 REF 리스트 DB에 일괄 등록하기
-                </button>
-
-                <div className="border-t border-[#F2EFE8] pt-5 mb-5">
-                  <h4 className="text-[13px] font-bold text-[#4A443F] mb-3 font-sans">새로운 REF. 직접 추가</h4>
-                  <textarea
-                    value={customRefsText}
-                    onChange={(e) => setCustomRefsText(e.target.value)}
-                    placeholder="추가할 REF 번호를 쉼표(,)로 구분해서 입력하세요.&#13;&#10;예: 5711/1A-010, 5205G-013"
-                    className="w-full bg-[#FDFBF7] border border-[#E8E4DB] rounded-[8px] p-4 text-[13px] font-sans outline-none focus:border-[#8B7355] resize-none h-24 mb-3 placeholder-[#C2BDB5]"
-                  ></textarea>
-                  <button onClick={handleAddCustomRefs} className="w-full bg-[#3A3532] hover:bg-[#2A2522] text-[#F3EFE8] font-sans text-[13px] py-3.5 rounded-[8px] transition-colors shadow-sm">
-                    리스트에 추가하기
-                  </button>
-                </div>
-
-                <div className="border-t border-[#F2EFE8] pt-5">
-                  <div className="flex justify-between items-center mb-4">
-                    <h4 className="text-[13px] font-bold text-[#4A443F] font-sans">현재 등록된 리스트 <span className="text-[#8B7355] font-normal">({patekRefs.length})</span></h4>
-                    <button onClick={handleClearRefs} className="text-[12px] text-[#A8A29D] hover:text-[#FF3B30] transition-colors font-sans underline underline-offset-2">전체 삭제</button>
-                  </div>
-                  <div className="max-h-[250px] overflow-y-auto no-scrollbar bg-[#FCFBF9] border border-[#E8E4DB] rounded-[8px] p-3 flex flex-wrap gap-2 shadow-inner">
-                    {patekRefs.length === 0 ? (
-                      <p className="text-[12px] text-[#A8A29D] font-sans py-4 text-center w-full">등록된 데이터가 없습니다.</p>
-                    ) : (
-                      patekRefs.map(refStr => (
-                        <div key={refStr} className="bg-white border border-[#E8E4DB] rounded-full pl-3 pr-2 py-1.5 flex items-center gap-2 text-[12px] font-sans text-[#4A443F] shadow-sm">
-                          {refStr}
-                          <button onClick={() => handleDeleteRef(refStr)} className="text-[#C2BDB5] hover:text-[#FF3B30] bg-[#F2EFE8] rounded-full p-0.5"><X size={12}/></button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white border border-[#E8E4DB] rounded-xl p-5 shadow-sm">
+              <div className="bg-white border border-[#E8E4DB] rounded-xl p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
                 <button onClick={() => auth.signOut()} className="w-full bg-white hover:bg-[#FFF5F5] text-[#FF3B30] border border-[#FFD6D6] font-sans font-medium text-[13px] py-3.5 rounded-[8px] transition-colors">
                   로그아웃
                 </button>
@@ -993,6 +883,15 @@
           }
         };
 
+        const handleToggleAllCustomers = () => {
+            if (filteredAndSorted.length === 0) return;
+            if (selectedCustomerIds.length === filteredAndSorted.length) {
+                setSelectedCustomerIds([]);
+            } else {
+                setSelectedCustomerIds(filteredAndSorted.map(c => c.id));
+            }
+        };
+
         const handleDeleteSelectedCustomers = () => {
           if (selectedCustomerIds.length === 0) return;
           setConfirmDialog({
@@ -1060,7 +959,18 @@
             </div>
 
             <div className="grid grid-cols-[1.5fr_1fr_1.5fr] px-5 py-3 border-b border-[#E8E4DB] text-[12px] font-sans text-[#8A847E] shrink-0">
-              <div className="text-center pl-6">Name</div>
+              <div className="flex items-center justify-start pl-2">
+                 {isCustomerSelectMode && (
+                    <div className="mr-3 shrink-0 cursor-pointer" onClick={handleToggleAllCustomers}>
+                       {filteredAndSorted.length > 0 && selectedCustomerIds.length === filteredAndSorted.length ? (
+                          <CheckCircle size={20} className="text-[#8B7355]" filled />
+                       ) : (
+                          <CheckCircle size={20} className="text-[#C2BDB5]" />
+                       )}
+                    </div>
+                 )}
+                 <span className={`${!isCustomerSelectMode ? 'pl-8' : ''}`}>Name</span>
+              </div>
               <div className="text-center">Qty</div>
               <div className="text-center pr-2">Amount</div>
             </div>
@@ -1093,15 +1003,15 @@
                          }
                       }}
                     >
-                      <div className="flex items-center justify-start gap-2 w-full pl-2">
+                      <div className="flex items-center justify-start w-full pl-2">
                         {isCustomerSelectMode ? (
-                          <div className="mr-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <div className="mr-3 shrink-0" onClick={(e) => e.stopPropagation()}>
                              {isSelected ? <CheckCircle size={20} className="text-[#8B7355]" filled /> : <CheckCircle size={20} className="text-[#DCD6CC]" />}
                           </div>
                         ) : (
-                          <div className="w-7 h-7 rounded-full border border-[#DCD6CC] bg-[#FCFBF9] flex items-center justify-center text-[#8A847E] shrink-0"><Users size={14} /></div>
+                          <div className="w-7 h-7 rounded-full border border-[#DCD6CC] bg-[#FCFBF9] flex items-center justify-center text-[#8A847E] shrink-0 mr-1"><Users size={14} /></div>
                         )}
-                        <span className="font-sans font-medium text-[#2C2724] text-sm truncate w-[75px] text-left">{customer.name}</span>
+                        <span className="font-sans font-medium text-[#2C2724] text-sm truncate w-full text-left">{customer.name}</span>
                       </div>
                       <div className="text-center font-sans text-[#6B635C] text-[13px] pointer-events-none">{totalQty}PCS</div>
                       <div className="text-center font-serif text-[#3A3532] text-[14px] pointer-events-none">₩{totalAmount.toLocaleString()}</div>
@@ -1873,7 +1783,7 @@
                             />
                             {focusedRefIndex === item.id && item.ref.length > 0 && (
                                 <div className="absolute top-[90%] left-1/2 -translate-x-1/2 w-[140px] bg-white border border-[#E8E4DB] z-[150] max-h-[160px] overflow-y-auto shadow-xl rounded-md">
-                                    {patekRefs.filter(r => r.includes(item.ref)).map(match => (
+                                    {PATEK_REFS.filter(r => r.includes(item.ref)).map(match => (
                                         <div
                                            key={match}
                                            className="px-3 py-2 text-center text-[12px] hover:bg-[#F2EFE8] cursor-pointer text-[#4A443F] font-sans transition-colors"
@@ -1886,7 +1796,7 @@
                                            {match}
                                         </div>
                                     ))}
-                                    {patekRefs.filter(r => r.includes(item.ref)).length === 0 && (
+                                    {PATEK_REFS.filter(r => r.includes(item.ref)).length === 0 && (
                                         <div className="px-3 py-2 text-center text-[11px] text-[#A8A29D]">검색 결과 없음</div>
                                     )}
                                 </div>
