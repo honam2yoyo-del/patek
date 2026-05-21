@@ -831,18 +831,17 @@
 
             <div className="flex-1 overflow-y-auto px-5 py-6 no-scrollbar flex flex-col gap-6">
               
-              {/* REF 데이터베이스 관리 섹션 */}
               <div className="bg-white border border-[#E8E4DB] rounded-xl p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
                 <div className="flex justify-between items-center gap-2 mb-4">
                   <div className="flex items-center gap-2">
                     <ClipboardList size={20} className="text-[#8B7355]" />
-                    <h3 className="font-serif font-bold text-[#3A3532] text-[15px]">REF. 데이터베이스 관리</h3>
+                    <h3 className="font-serif font-bold text-[#3A3532] text-[15px]">REF. 데이터 관리</h3>
                   </div>
                   <button onClick={handleDeleteAllGlobalRefs} className="text-[11px] text-[#FF3B30] border border-[#FFD6D6] px-2 py-1 rounded-md hover:bg-[#FFF5F5] transition-colors font-sans">
                     전체 삭제
                   </button>
                 </div>
-                <p className="text-[12px] text-[#8A847E] font-sans mb-4">이곳에서 추가/삭제된 REF 목록은 앱을 사용하는 모든 사용자에게 동일하게 반영됩니다.</p>
+                <p className="text-[12px] text-[#8A847E] font-sans mb-4 whitespace-pre-wrap">이곳에서 추가/삭제된 REF 목록은{'\n'}앱을 사용하는 모든 사용자에게 동일하게 반영됩니다.</p>
                 
                 <div className="flex gap-2 mb-3">
                   <div className="flex-1 relative">
@@ -866,7 +865,7 @@
                   <textarea 
                     value={newRefInput} 
                     onChange={(e) => setNewRefInput(e.target.value.toUpperCase())} 
-                    placeholder="새로운 REF 입력 (쉼표(,)로 구분하여 다중 추가 가능)" 
+                    placeholder={"새로운 REF 입력\n(쉼표(,)로 구분하여 다중 추가 가능)"} 
                     className="flex-1 border border-[#E8E4DB] rounded-[6px] px-3 py-2 text-[13px] outline-none font-sans resize-none h-[60px]" 
                   ></textarea>
                   <button onClick={handleAddGlobalRef} className="bg-[#3A3532] text-white px-4 rounded-[6px] text-[13px] font-medium transition-colors hover:bg-[#2A2522]">
@@ -889,7 +888,6 @@
                 </div>
               </div>
 
-              {/* 로그아웃 버튼 */}
               <div className="bg-white border border-[#E8E4DB] rounded-xl p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] mt-auto">
                 <button onClick={() => auth.signOut()} className="w-full bg-white hover:bg-[#FFF5F5] text-[#FF3B30] border border-[#FFD6D6] font-sans font-medium text-[13px] py-3.5 rounded-[8px] transition-colors">
                   로그아웃
@@ -1130,12 +1128,10 @@
                   )}
                 </div>
                 
-                {/* CSV 업로드 버튼 */}
                 <button onClick={() => csvFileInputRef.current.click()} className="bg-white border border-[#E8E4DB] rounded-[6px] w-[42px] h-[42px] shadow-sm hover:bg-[#F2EFE8] transition-colors flex items-center justify-center text-[#4A443F] shrink-0" title="CSV 엑셀 일괄 업로드">
                   <UploadCloud size={20} />
                 </button>
 
-                {/* 다중 선택 모드 토글 버튼 */}
                 <button onClick={() => { setIsCustomerSelectMode(!isCustomerSelectMode); setSelectedCustomerIds([]); }} className={`border rounded-[6px] w-[42px] h-[42px] shadow-sm transition-colors flex items-center justify-center shrink-0 ${isCustomerSelectMode ? 'bg-[#8B7355] text-white border-[#8B7355]' : 'bg-white text-[#4A443F] border-[#E8E4DB] hover:bg-[#F2EFE8]'}`} title="멀티 선택 모드">
                   <ListChecks size={20} />
                 </button>
@@ -1229,7 +1225,6 @@
               {filteredAndSorted.length === 0 && <div className="flex justify-center items-center h-32 text-[#A8A29D] font-serif">등록된 고객이 없습니다.</div>}
             </div>
 
-            {/* 다중 선택 모드 일관적 바텀 배너 패널 */}
             {isCustomerSelectMode && selectedCustomerIds.length > 0 && (
               <div className="absolute bottom-[20px] left-5 right-5 rounded-2xl bg-[#3A3532] text-white px-6 py-4 flex justify-between items-center z-40 animate-in slide-in-from-bottom-5 shadow-2xl">
                 <div className="flex items-center gap-3">
@@ -2002,7 +1997,6 @@
                               placeholder="REF" 
                               className="w-full bg-transparent text-center py-3 outline-none" 
                             />
-                            {/* 공유된 patekRefs 데이터 연동 */}
                             {focusedRefIndex === item.id && item.ref.length > 0 && (
                                 <div className="absolute top-[90%] left-1/2 -translate-x-1/2 w-[140px] bg-white border border-[#E8E4DB] z-[150] max-h-[160px] overflow-y-auto shadow-xl rounded-md">
                                     {patekRefs.filter(r => r.includes(item.ref)).map(match => (
@@ -2191,7 +2185,6 @@
           >
             
             <div className="flex-1 relative flex flex-col overflow-hidden">
-              {/* 글로벌 설정 버튼 (우측 상단 고정 노출) */}
               {isLoggedIn && activeTab !== 'settings' && (
                 <button
                   onClick={() => setActiveTab('settings')}
@@ -2210,7 +2203,6 @@
               {activeTab === 'settings' && renderSettingsTab()}
             </div>
 
-            {/* Bottom Navigation */}
             <div className="w-full bg-[#FCFBF9] border-t border-[#E8E4DB] grid grid-cols-5 px-1 pb-[calc(env(safe-area-inset-bottom)+8px)] pt-3 shrink-0 z-30">
               <button onClick={() => { setActiveTab('customer'); setIsCustomerSelectMode(false); }} className={`flex flex-col items-center justify-start space-y-1 transition-colors relative ${activeTab === 'customer' ? 'text-[#8B7355]' : 'text-[#A8A29D] hover:text-[#7A746F]'}`}>
                 {activeTab === 'customer' && <div className="absolute -top-3 w-12 h-[3px] bg-[#8B7355] rounded-b-md"></div>}
