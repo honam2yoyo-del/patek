@@ -251,6 +251,8 @@
       const [searchQuery, setSearchQuery] = useState('');
       const [sortOrder, setSortOrder] = useState('amount_desc');
       const [isFilterOpen, setIsFilterOpen] = useState(false);
+      const [customerFilter, setCustomerFilter] = useState('ALL'); // 고객 탭 전용 필터(WATCH/STRAP/OTHERS)
+      
       const [inquirySearchQuery, setInquirySearchQuery] = useState('');
       const [inquirySortOrder, setInquirySortOrder] = useState('date_desc');
       const [isInquiryFilterOpen, setIsInquiryFilterOpen] = useState(false);
@@ -686,11 +688,16 @@
             const matchName = String(c.name || '').toLowerCase().replace(/[\s-]/g, '').includes(safeQuery);
             const matchRef = c.purchases && c.purchases.some(p => String(p.ref || '').toLowerCase().replace(/[\s-]/g, '').includes(safeQuery));
             return matchName || matchRef;
+        }).filter(c => {
+            if (customerFilter === 'ALL') return true;
+            return c.purchases && c.purchases.some(p => (p.type || 'WATCH') === customerFilter);
         }).sort((a, b) => {
-            const aQty = a.purchases.reduce((sum, p) => sum + (Number(p.qty) || 0), 0);
-            const aAmt = a.purchases.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-            const bQty = b.purchases.reduce((sum, p) => sum + (Number(p.qty) || 0), 0);
-            const bAmt = b.purchases.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+            const aPurchases = a.purchases ? a.purchases.filter(p => customerFilter === 'ALL' || (p.type || 'WATCH') === customerFilter) : [];
+            const bPurchases = b.purchases ? b.purchases.filter(p => customerFilter === 'ALL' || (p.type || 'WATCH') === customerFilter) : [];
+            const aQty = aPurchases.reduce((sum, p) => sum + (Number(p.qty) || 0), 0);
+            const aAmt = aPurchases.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+            const bQty = bPurchases.reduce((sum, p) => sum + (Number(p.qty) || 0), 0);
+            const bAmt = bPurchases.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
             if (sortOrder === 'amount_desc') return bAmt - aAmt;
             if (sortOrder === 'amount_asc') return aAmt - bAmt;
             if (sortOrder === 'qty_desc') return bQty - aQty;
@@ -736,6 +743,15 @@
                   </div>
                 )}
               </div>
+
+              {/* 추가된 구매분류 필터링 버튼 (ALL / WATCH / STRAP / OTHERS) */}
+              <div className="w-full px-5 mt-4 flex gap-2 overflow-x-auto no-scrollbar pb-1" onTouchStart={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()}>
+                {['ALL', 'WATCH', 'STRAP', 'OTHERS'].map(cat => (
+                   <button key={cat} onClick={() => setCustomerFilter(cat)} className={`flex-1 py-2 rounded-lg text-[13px] font-sans whitespace-nowrap transition-colors border shadow-sm ${customerFilter === cat ? 'bg-[#8B7355] text-white border-[#8B7355] font-medium' : 'bg-white text-[#8A847E] border-[#E8E4DB]'}`}>
+                     {cat}
+                   </button>
+                ))}
+              </div>
             </div>
 
             <div className="grid grid-cols-[1.5fr_1fr_1.5fr] px-5 py-3 border-b border-[#E8E4DB] text-[12px] font-sans text-[#8A847E] shrink-0">
@@ -746,8 +762,9 @@
 
             <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar pb-8 relative">
               {filteredAndSorted.map(customer => {
-                const totalQty = customer.purchases.reduce((sum, p) => sum + (Number(p.qty) || 0), 0);
-                const totalAmount = customer.purchases.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+                const validPurchases = customer.purchases ? customer.purchases.filter(p => customerFilter === 'ALL' || (p.type || 'WATCH') === customerFilter) : [];
+                const totalQty = validPurchases.reduce((sum, p) => sum + (Number(p.qty) || 0), 0);
+                const totalAmount = validPurchases.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
                 const isSwiped = swipedItemId === customer.id;
 
                 return (
@@ -1217,7 +1234,7 @@
         };
 
         const addPurchaseRow = () => {
-          setCustomerForm({ ...customerForm, purchases: [...customerForm.purchases, { id: Date.now().toString(), date: '', ref: '', qty: '', amount: '', note: '' }] });
+          setCustomerForm({ ...customerForm, purchases: [...customerForm.purchases, { id: Date.now().toString(), date: '', type: 'WATCH', ref: '', qty: '', amount: '', note: '' }] });
         };
 
         const handleWishlistClick = () => {
@@ -1282,12 +1299,12 @@
                 </div>
                 
                 <div className="overflow-x-auto no-scrollbar" onTouchStart={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()}>
-                  <div className="min-w-[520px]">
-                    <div className="grid grid-cols-[1.3fr_1.3fr_0.7fr_1.6fr_1.2fr_40px] text-[11px] text-[#8A847E] bg-[#FDFBF7] py-2 border-b border-[#E8E4DB] text-center">
-                      <div>구매일</div><div>REF.</div><div>수량</div><div>금액</div><div>비고</div><div>삭제</div>
+                  <div className="min-w-[620px]">
+                    <div className="grid grid-cols-[1.2fr_0.9fr_1.3fr_0.7fr_1.5fr_1fr_40px] text-[11px] text-[#8A847E] bg-[#FDFBF7] py-2 border-b border-[#E8E4DB] text-center">
+                      <div>구매일</div><div>분류</div><div>REF.</div><div>수량</div><div>금액</div><div>비고</div><div>삭제</div>
                     </div>
                     {customerForm.purchases.map((p, idx) => (
-                      <div key={p.id} className="grid grid-cols-[1.3fr_1.3fr_0.7fr_1.6fr_1.2fr_40px] border-b border-[#F2EFE8] items-center text-[12px] text-[#4A443F]">
+                      <div key={p.id} className="grid grid-cols-[1.2fr_0.9fr_1.3fr_0.7fr_1.5fr_1fr_40px] border-b border-[#F2EFE8] items-center text-[12px] text-[#4A443F]">
                         <div className="relative w-full h-full flex items-center justify-center">
                           <input 
                             type="text" 
@@ -1308,6 +1325,20 @@
                              />
                           </div>
                         </div>
+
+                        <div className="relative border-l border-[#F2EFE8] h-full flex items-center justify-center">
+                          <select 
+                            value={p.type || 'WATCH'} 
+                            onChange={(e) => updatePurchase(idx, 'type', e.target.value)}
+                            className="w-full bg-transparent text-center py-3 outline-none appearance-none cursor-pointer pl-1 pr-3 text-[11px] font-sans"
+                          >
+                            <option value="WATCH">WATCH</option>
+                            <option value="STRAP">STRAP</option>
+                            <option value="OTHERS">OTHERS</option>
+                          </select>
+                          <ChevronRight size={10} className="absolute right-1 text-[#A8A29D] pointer-events-none rotate-90" />
+                        </div>
+
                         <input type="text" value={p.ref} onChange={(e) => updatePurchase(idx, 'ref', e.target.value)} placeholder="REF" className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" />
                         <input type="number" value={p.qty} onChange={(e) => updatePurchase(idx, 'qty', e.target.value)} placeholder="0" className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" />
                         <div className="relative border-l border-[#F2EFE8] h-full flex items-center">
