@@ -107,19 +107,18 @@
         ? firebaseConfig.projectId 
         : (typeof __app_id !== 'undefined' ? __app_id : 'patek-philippe-app');
 
+    // 파텍필립 자동완성 모델 리스트 (가상의 데이터베이스)
     const PATEK_REFS = [
       "5320G-011", "5327G-001", "5327R-001", "7140G-001", "7140R-001", "5236P-001", "5236P-010", "5236P-011", "5160/500R-001", "6159G-001", "5270/1R-001", "5270J-001", "5270P-014", "5270P-015", "5270P-016", "5270P-017", "5271P-010", "5271/11P-010", "5271/12P-010", "5470P-001", "5204G-001", "5204G-010", "5370R-001", "5373P-001", "6102R-001", "6102P-001", "6104R-001", "6104P-010", "6104/11P-010", "6104/12P-010", "6104/13P-010", "6105G-001", "5520RG-001", "5322G-001", "5322G-010", "5260/1455R-001", "5260/355R-001", "7040/250G-001", "5178G-012", "7047G-001", "5303R-001", "5304/301R-001", "5308G-001", "5316/50P-001", "5374G-001", "5374/300P-001", "5374/400P-001", "5531G-001", "6002R-001", "6301P-001", "6300GR-001", "6300/400G-001", "6300/401G-001", "6300/403G-001", "27000M-001", "5328G-001", "5212A-001", "5205G-013", "5205R-011", "5396G-017", "5396R-011", "5396R-016", "4946G-001", "4946R-001", "4947/1A-001", "4948G-010", "4948R-001", "5235/50R-001", "5326G-001", "5172G-001", "5172G-010", "5905/1A-001", "5905R-010", "5961R-010", "5961P-001", "5224R-001", "5524G-010", "5524R-001", "5231G-001", "5330G-001", "5930P-001", "7129J-001", "5935A-001", "7130G-016", "7130R-014", "5924G-001", "5924G-010", "7121/200G-001", "5180/1R-001", "5249R-001", "5088/100P-001", "5226G-001", "5227G-010", "5227G-015", "5227J-001", "5227R-001", "6007G-001", "6007G-010", "6007G-011", "6119G-001", "6119R-001", "6196P-001", "4997/200G-001", "4997/200R-001", "7200R-001", "7200/50G-001", "7200/50G-012", "7042/100R-010", "7042/100G-010", "5738/1R-001", "5738P-001", "5738R-001", "5738/51G-001", "5822P-001", "5821/1AR-001", "5821/1A-001", "7128/1G-001", "7128/1R-001", "5712/1R-001", "5726/1A-014", "5726A-001", "5811/1G-001", "5811/1460G-001", "5740/1G-001", "5980/1400G-010", "5980/1400R-011", "5980/60G-001", "5990/1A-011", "5990/1R-001", "5990/1400G-001", "5990/1421G-001", "5990/1422G-001", "5990/1423G-001", "7010/1G-013", "7010/1R-013", "7010G-013", "7010R-013", "7118/1A-001", "7118/1A-011", "7118/1200A-001", "7118/1200A-011", "7118/1R-001", "7118/1R-010", "7118/1200R-001", "7118/1200R-010", "7118/1300R-001", "7118/1450G-001", "7118/1450R-001", "7118/1451G-001", "7118/1452G-001", "7118/1453G-001", "5723/1R-001", "5723/1R-010", "5723/112R-001", "5711/110P-001", "5711/111P-001", "5711/112P-001", "5711/113P-001", "5810/1G-001", "5610/1P-001", "5810G-001", "958G-001", "5167A-001", "5167R-001", "5164G-001", "5164R-001", "5168G-001", "5168G-010", "5968A-001", "5968G-001", "5968G-010", "5968R-001", "5072R-001", "5261R-001", "5267/200A-001", "5267/200A-010", "5267/200A-011", "5268/200R-010", "5268/461G-001", "5269R-001", "7968/300R-001", "7300/1200R-001", "7300/1200A-001", "4910/1200A-001", "4910/1200A-010", "4910/1200A-011", "4910/1201R-010", "7300/1200A-010", "7300/1200R-010", "7340/1R-001", "973J-001", "980G-010", "980J-011", "980R-001", "983J-001", "5738/50J-011", "5077/100R-071", "5738/50G-029", "992/187G-001", "992/160G-001", "984/101J-001", "20191M-001", "21000M-001", "20171M-001"
     ];
 
     const getNextDayStr = (dateStr) => {
-      const [y, m, d] = String(dateStr || '').split('-').map(Number);
-      if(!y || !m || !d) return '';
+      const [y, m, d] = dateStr.split('-').map(Number);
       const date = new Date(y, m - 1, d + 1);
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     };
     const formatDateInput = (value) => {
-      if (!value) return '';
-      const numbers = String(value).replace(/\D/g, ''); 
+      const numbers = value.replace(/\D/g, ''); 
       if (numbers.length <= 4) return numbers;
       if (numbers.length <= 6) return `${numbers.slice(0, 4)}.${numbers.slice(4)}`;
       return `${numbers.slice(0, 4)}.${numbers.slice(4, 6)}.${numbers.slice(6, 8)}`;
@@ -128,21 +127,19 @@
       return formatDateInput(value);
     };
     const formatPhoneNumber = (value) => {
-      if (!value) return '';
-      const numbers = String(value).replace(/\D/g, ''); 
+      const numbers = value.replace(/\D/g, ''); 
       if (numbers.length <= 3) return numbers;
       if (numbers.length <= 7) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
       return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
     };
     const formatAmount = (value) => {
-      const numbers = String(value || '').replace(/\D/g, '');
+      const numbers = String(value).replace(/\D/g, '');
       if (!numbers) return '';
       return Number(numbers).toLocaleString('ko-KR');
     };
     const formatTaskDate = (dateStr) => {
       if (!dateStr) return '';
       const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return '';
       const days = ['일', '월', '화', '수', '목', '금', '토'];
       return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}(${days[d.getDay()]})`;
     };
@@ -235,14 +232,13 @@
     function WorkApp() {
       const [user, setUser] = useState(null);
       const [isLoggedIn, setIsLoggedIn] = useState(false);
-      // ✅ 로딩 초기값을 true로 변경하여 깜빡임 방지
-      const [isLoading, setIsLoading] = useState(true); 
+      const [isLoading, setIsLoading] = useState(false);
       
       const [activeTab, setActiveTab] = useState('calendar'); 
       const [alertMessage, setAlertMessage] = useState(''); 
       const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null });
       const fileInputRef = useRef(null);
-      const csvInputRef = useRef(null); 
+      const csvInputRef = useRef(null); // CSV 업로드용 Ref 추가
       
       const [swipedItemId, setSwipedItemId] = useState(null);
       const touchState = useRef({ startX: 0, startY: 0, isScrolling: false });
@@ -257,7 +253,7 @@
       const [searchQuery, setSearchQuery] = useState('');
       const [sortOrder, setSortOrder] = useState('amount_desc');
       const [isFilterOpen, setIsFilterOpen] = useState(false);
-      const [customerFilter, setCustomerFilter] = useState('ALL'); 
+      const [customerFilter, setCustomerFilter] = useState('ALL'); // 고객 탭 전용 필터(WATCH/STRAP/OTHERS)
       
       const [inquirySearchQuery, setInquirySearchQuery] = useState('');
       const [inquirySortOrder, setInquirySortOrder] = useState('date_desc');
@@ -283,33 +279,33 @@
       const [albumForm, setAlbumForm] = useState(null);
       const [formData, setFormData] = useState({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'sale' });
       
+      // 문의사항 REF 자동완성용 상태
       const [focusedRefIndex, setFocusedRefIndex] = useState(null);
 
       useEffect(() => {
-        if (!auth) {
-          setIsLoading(false);
-          return;
-        }
+        if (!auth) return;
         
         getRedirectResult(auth).then((result) => {
           if (result && result.user) {
             setUser(result.user);
             setIsLoggedIn(true);
+            setIsLoading(false);
           }
         }).catch((err) => {
           console.error("Redirect Error:", err);
+          setIsLoading(false);
         });
 
-        // ✅ onAuthStateChanged에서 성공/실패 시 모두 로딩 상태 해제
         const unsubscribe = onAuthStateChanged(auth, (u) => {
           if (u) {
             setUser(u);
             setIsLoggedIn(true);
+            setIsLoading(false);
           } else {
             setUser(null);
             setIsLoggedIn(false);
+            setIsLoading(false);
           }
-          setIsLoading(false);
         });
         return () => unsubscribe();
       }, []);
@@ -420,6 +416,7 @@
         if (fileInputRef.current) fileInputRef.current.value = '';
       };
 
+      // CSV 파일 일괄 업로드 처리 로직
       const handleCSVUpload = (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -427,6 +424,7 @@
         setAlertMessage("데이터를 파싱하고 있습니다...\n잠시만 기다려주세요.");
         
         const reader = new FileReader();
+        // 기본적으로 UTF-8로 읽습니다. 엑셀에서 'CSV UTF-8' 형식 저장이 권장됩니다.
         reader.onload = async (event) => {
             try {
                 const text = event.target.result;
@@ -436,6 +434,7 @@
                     return;
                 }
                 
+                // 첫 줄을 헤더로 파싱 (쌍따옴표 제거)
                 const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
                 const parsedData = [];
                 
@@ -449,10 +448,11 @@
                     parsedData.push(obj);
                 }
 
+                // 이름과 전화번호를 기준으로 구매내역 그룹화
                 const grouped = {};
                 parsedData.forEach(row => {
                     const name = row['고객명'];
-                    if (!name) return; 
+                    if (!name) return; // 이름 없으면 무시
                     
                     const phone = row['연락처'] || '';
                     const key = `${name}_${phone}`;
@@ -480,10 +480,13 @@
                 });
 
                 if (user && db && user.uid !== 'local-test-user') {
+                    // Firebase 일괄 업로드 처리
                     const uploadPromises = Object.values(grouped).map(async (newCust) => {
+                        // 이미 존재하는 고객인지 확인 (이름 + 폰번호 일치)
                         const existingCust = customers.find(c => c.name === newCust.name && c.phone === newCust.phone);
                         if (existingCust) {
                             const existingPurchases = existingCust.purchases || [];
+                            // 중복 데이터 방지 (날짜와 REF가 완전히 똑같은 건 추가하지 않음)
                             const uniqueNewPurchases = newCust.purchases.filter(np => 
                                 !existingPurchases.some(ep => ep.date === np.date && ep.ref === np.ref)
                             );
@@ -493,6 +496,7 @@
                                 await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'customers', existingCust.id), { purchases: updatedPurchases });
                             }
                         } else {
+                            // 신규 고객이면 통째로 생성
                             await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'customers'), newCust);
                         }
                     });
@@ -638,17 +642,6 @@
         setFormData({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'sale' });
       };
 
-      // ✅ 3단계: 로그인 체크 전 로딩 화면 (펄스 애니메이션 로고)
-      if (isLoading) {
-        return (
-          <div className="w-full h-screen bg-[#DCD6CC] flex justify-center font-sans">
-            <div className="w-full h-full max-w-md bg-[#FCFBF9] shadow-[0_0_50px_rgba(0,0,0,0.15)] flex flex-col items-center justify-center">
-              <img src="./logo.png" alt="Patek Philippe" className="w-20 h-20 object-contain animate-pulse" />
-            </div>
-          </div>
-        );
-      }
-
       if (!isLoggedIn) {
         return (
           <div className="w-full h-screen bg-[#DCD6CC] flex justify-center font-sans">
@@ -720,25 +713,11 @@
               
               <div className="flex-1 overflow-y-auto px-5 pb-8 no-scrollbar relative z-0">
                 {calendarWeeks.map((wDates, wIdx) => {
-                  let weekEvents = events.filter(e => { 
-                      const eStart = e.date || ''; 
-                      const eEnd = e.endDate || e.date || ''; 
-                      return eStart && eStart <= wDates[6] && eEnd >= wDates[0]; 
-                  });
-                  weekEvents.sort((a, b) => { 
-                      const dateA = a.date || '';
-                      const dateB = b.date || '';
-                      if (dateA !== dateB) return dateA.localeCompare(dateB); 
-                      const aDur = new Date(a.endDate || dateA) - new Date(dateA); 
-                      const bDur = new Date(b.endDate || dateB) - new Date(dateB); 
-                      return bDur - aDur; 
-                  });
-                  
+                  let weekEvents = events.filter(e => { const eStart = e.date; const eEnd = e.endDate || e.date; return eStart <= wDates[6] && eEnd >= wDates[0]; });
+                  weekEvents.sort((a, b) => { if (a.date !== b.date) return a.date.localeCompare(b.date); const aDur = new Date(a.endDate || a.date) - new Date(a.date); const bDur = new Date(b.endDate || b.date) - new Date(b.date); return bDur - aDur; });
                   const slots = []; const eventSlots = {};
                   weekEvents.forEach(e => {
-                    const eStart = e.date || ''; 
-                    const eEnd = e.endDate || e.date || ''; 
-                    if(!eStart) return;
+                    const eStart = e.date; const eEnd = e.endDate || e.date; 
                     for (let slotIdx = 0; slotIdx < 10; slotIdx++) { 
                       if (!slots[slotIdx]) slots[slotIdx] = []; let isFree = true;
                       const effectiveStart = eStart < wDates[0] ? wDates[0] : eStart; const effectiveEnd = eEnd > wDates[6] ? wDates[6] : eEnd;
@@ -770,8 +749,7 @@
                                    <div key={`slot-${wIdx}-${sIdx}`} className="relative h-[22px] w-full">
                                       {eventsInSlot.map(event => {
                                          const category = CATEGORIES.find(c => c.id === event.categoryId) || CATEGORIES[0];
-                                         const eStart = event.date || ''; const eEnd = event.endDate || event.date || '';
-                                         if(!eStart) return null;
+                                         const eStart = event.date; const eEnd = event.endDate || event.date;
                                          const isActualStart = eStart >= wDates[0]; const isActualEnd = eEnd <= wDates[6];
                                          const effectiveStart = eStart < wDates[0] ? wDates[0] : eStart; const effectiveEnd = eEnd > wDates[6] ? wDates[6] : eEnd;
                                          const startIdx = wDates.findIndex(d => d === effectiveStart); const endIdx = wDates.findIndex(d => d === effectiveEnd);
@@ -808,11 +786,11 @@
         const filteredAndSorted = [...customers].filter(c => {
             if (!safeQuery) return true;
             const matchName = String(c.name || '').toLowerCase().replace(/[\s-]/g, '').includes(safeQuery);
-            const matchRef = (c.purchases || []).some(p => String(p.ref || '').toLowerCase().replace(/[\s-]/g, '').includes(safeQuery));
+            const matchRef = c.purchases && c.purchases.some(p => String(p.ref || '').toLowerCase().replace(/[\s-]/g, '').includes(safeQuery));
             return matchName || matchRef;
         }).filter(c => {
             if (customerFilter === 'ALL') return true;
-            return (c.purchases || []).some(p => (p.type || 'WATCH') === customerFilter);
+            return c.purchases && c.purchases.some(p => (p.type || 'WATCH') === customerFilter);
         }).sort((a, b) => {
             const aPurchases = a.purchases ? a.purchases.filter(p => customerFilter === 'ALL' || (p.type || 'WATCH') === customerFilter) : [];
             const bPurchases = b.purchases ? b.purchases.filter(p => customerFilter === 'ALL' || (p.type || 'WATCH') === customerFilter) : [];
@@ -842,6 +820,7 @@
         return (
           <div className="flex flex-col h-full bg-[#FCFBF9] font-serif relative" onClick={closeSwipe}>
             <div className="flex flex-col items-center pt-[calc(env(safe-area-inset-top)+16px)] pb-4 relative z-20 shrink-0">
+              {/* CSV 업로드 버튼 추가 */}
               <div className="absolute top-[calc(env(safe-area-inset-top)+16px)] right-5">
                  <button onClick={() => csvInputRef.current?.click()} className="p-2 text-[#8A847E] hover:text-[#3A3532] transition-colors rounded-full hover:bg-[#F2EFE8]" title="CSV 데이터 업로드">
                     <UploadIcon size={22} />
@@ -873,6 +852,7 @@
                 )}
               </div>
 
+              {/* 추가된 구매분류 필터링 버튼 (ALL / WATCH / STRAP / OTHERS) */}
               <div className="w-full px-5 mt-4 flex gap-2 overflow-x-auto no-scrollbar pb-1" onTouchStart={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()}>
                 {['ALL', 'WATCH', 'STRAP', 'OTHERS'].map(cat => (
                    <button key={cat} onClick={() => setCustomerFilter(cat)} className={`flex-1 py-2 rounded-lg text-[13px] font-sans whitespace-nowrap transition-colors border shadow-sm ${customerFilter === cat ? 'bg-[#8B7355] text-white border-[#8B7355] font-medium' : 'bg-white text-[#8A847E] border-[#E8E4DB]'}`}>
@@ -937,14 +917,14 @@
         let filteredInquiries = [...inquiries].filter(i => {
             if (!safeQuery) return true;
             const matchName = String(i.customerName || '').toLowerCase().replace(/[\s-]/g, '').includes(safeQuery);
-            const matchRef = (i.items || []).some(item => String(item.ref || '').toLowerCase().replace(/[\s-]/g, '').includes(safeQuery));
+            const matchRef = i.items && i.items.some(item => String(item.ref || '').toLowerCase().replace(/[\s-]/g, '').includes(safeQuery));
             return matchName || matchRef;
         });
         
         if (inquirySortOrder === 'filter_old') filteredInquiries = filteredInquiries.filter(i => i.type === '기존');
         else if (inquirySortOrder === 'filter_new') filteredInquiries = filteredInquiries.filter(i => i.type === '신규');
-        else if (inquirySortOrder === 'date_desc') filteredInquiries.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
-        else if (inquirySortOrder === 'name_asc') filteredInquiries.sort((a, b) => String(a.customerName || '').localeCompare(String(b.customerName || '')));
+        else if (inquirySortOrder === 'date_desc') filteredInquiries.sort((a, b) => b.date.localeCompare(a.date));
+        else if (inquirySortOrder === 'name_asc') filteredInquiries.sort((a, b) => a.customerName.localeCompare(b.customerName));
 
         const handleDeleteInquiry = (e, id) => {
           e.stopPropagation();
@@ -1166,8 +1146,8 @@
 
       const renderTaskTab = () => {
         let filteredTasks = tasks.filter(t => taskFilter === '전체' || t.category === taskFilter);
-        if (taskSortOrder === 'date_desc') filteredTasks.sort((a,b) => String(b.date || '').localeCompare(String(a.date || '')));
-        if (taskSortOrder === 'date_asc') filteredTasks.sort((a,b) => String(a.date || '').localeCompare(String(b.date || '')));
+        if (taskSortOrder === 'date_desc') filteredTasks.sort((a,b) => b.date.localeCompare(a.date));
+        if (taskSortOrder === 'date_asc') filteredTasks.sort((a,b) => a.date.localeCompare(b.date));
         filteredTasks.sort((a, b) => (a.isCompleted === b.isCompleted ? 0 : a.isCompleted ? 1 : -1));
 
         const toggleTaskCompletion = async (id) => { 
@@ -1246,443 +1226,80 @@
         );
       };
 
-      const renderCustomerModal = () => {
-        if (!isCustomerModalOpen || !customerForm) return null;
-
-        const handleSaveCustomer = async () => {
-          if (!(customerForm.name || '').trim()) { setAlertMessage("고객명을 입력해주세요."); return; }
-          const payload = { ...customerForm };
-          const targetId = payload.id;
-          delete payload.id; 
-          
-          if (user.uid !== 'local-test-user') {
-             if (targetId) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'customers', targetId), payload);
-             else await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'customers'), payload);
-          }
-          setIsCustomerModalOpen(false); setCustomerForm(null);
-        };
-
-        const updatePurchase = (index, field, value) => {
-          const newPurchases = [...(customerForm.purchases || [])];
-          if (field === 'amount') newPurchases[index][field] = value.replace(/,/g, '');
-          else newPurchases[index][field] = value;
-          setCustomerForm({ ...customerForm, purchases: newPurchases });
-        };
-
-        const confirmDeletePurchase = (index) => {
-          setConfirmDialog({
-             isOpen: true,
-             message: "해당 내역을\n삭제하시겠습니까?",
-             onConfirm: () => {
-                const newPurchases = (customerForm.purchases || []).filter((_, i) => i !== index);
-                setCustomerForm({ ...customerForm, purchases: newPurchases });
-                setConfirmDialog({ isOpen: false, message: '', onConfirm: null });
-             }
-          });
-        };
-
-        const addPurchaseRow = () => {
-          setCustomerForm({ ...customerForm, purchases: [...(customerForm.purchases || []), { id: Date.now().toString(), date: '', type: 'WATCH', ref: '', qty: '', amount: '', note: '' }] });
-        };
-
-        const handleWishlistClick = () => {
-          const inquiry = inquiries.find((i) => i.customerName === customerForm.name && i.customerPhone === customerForm.phone);
-          if (inquiry) {
-            setInquiryForm(JSON.parse(JSON.stringify(inquiry))); setIsInquiryModalOpen(true); setActiveTab('inquiries'); setIsCustomerModalOpen(false);
-          } else { setAlertMessage("현재 등록된\nWish List가 없습니다."); }
-        };
-
-        const totalQty = (customerForm.purchases || []).reduce((sum, p) => sum + (Number(p.qty) || 0), 0);
-        const totalAmount = (customerForm.purchases || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-
-        return (
-          <div className="absolute inset-0 bg-[#FCFBF9] z-[100] flex flex-col font-sans animate-in slide-in-from-bottom-5">
-            <div className="flex justify-between items-center px-5 pt-8 pb-4 bg-[#FCFBF9] sticky top-0 z-20 shrink-0">
-              <button onClick={() => setIsCustomerModalOpen(false)} className="text-[#8A847E] text-[15px] hover:text-[#4A443F] py-2">취소</button>
-              <a href="https://www.patek.com/en" target="_blank" rel="noopener noreferrer" className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center top-6">
-                 <img src="./logo.png" alt="Logo" className="w-12 h-12 object-contain" />
-                 <span className="font-serif text-[18px] text-[#3A3532] -mt-1">Customer</span>
-              </a>
-              <button onClick={handleSaveCustomer} className="text-[#8B7355] text-[15px] font-medium hover:text-[#6B5335] py-2">저장</button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-5 pb-8 mt-6 no-scrollbar">
-              <div className="relative flex items-center justify-center mb-6 h-12">
-                <input type="text" value={customerForm.name || ''} onChange={(e) => setCustomerForm({...customerForm, name: e.target.value})} placeholder="고객명 입력" className="text-3xl font-serif font-bold text-center text-[#2C2724] bg-transparent outline-none w-full placeholder-[#DCD6CC]" />
-                <div className="absolute right-0 top-0 bottom-0 flex items-center justify-center p-1">
-                  <img src="./wish.png" alt="Wishlist" className="h-full w-auto object-contain cursor-pointer hover:opacity-80 transition-opacity drop-shadow-sm" onClick={handleWishlistClick} />
-                </div>
-              </div>
-
-              <div className="bg-white border border-[#E8E4DB] rounded-xl p-5 mb-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-                <div className="flex items-center py-3 border-b border-[#F2EFE8]">
-                  <span className="text-[13px] text-[#8A847E] w-[55px] shrink-0">고객명</span>
-                  <input type="text" value={customerForm.name || ''} onChange={(e) => setCustomerForm({...customerForm, name: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-[50px]" placeholder="이름" />
-                  <span className="text-[13px] text-[#8A847E] w-auto whitespace-nowrap mx-2 shrink-0">생년월일</span>
-                  <input type="text" value={customerForm.birthDate || ''} onChange={(e) => setCustomerForm({...customerForm, birthDate: formatBirthDate(e.target.value)})} className="bg-transparent outline-none text-[#4A443F] text-sm text-right w-[76px] shrink-0 tracking-tight" placeholder="YYYY.MM.DD" maxLength="10" />
-                </div>
-                <div className="flex items-center py-3 border-b border-[#F2EFE8]">
-                  <span className="text-[13px] text-[#8A847E] w-[60px] shrink-0">연락처</span>
-                  <input type="text" value={customerForm.phone || ''} onChange={(e) => setCustomerForm({...customerForm, phone: formatPhoneNumber(e.target.value)})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-0" placeholder="010-0000-0000" maxLength="13" />
-                </div>
-                <div className="flex items-center py-3 border-b border-[#F2EFE8]">
-                  <span className="text-[13px] text-[#8A847E] w-[60px] shrink-0">직업</span>
-                  <input type="text" value={customerForm.job || ''} onChange={(e) => setCustomerForm({...customerForm, job: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-0" placeholder="직업 입력" />
-                </div>
-                <div className="flex items-start pt-3">
-                  <span className="text-[13px] text-[#8A847E] w-[60px] shrink-0 mt-1">특이사항</span>
-                  <textarea value={customerForm.notes || ''} onChange={(e) => setCustomerForm({...customerForm, notes: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm resize-none h-16 min-w-0" placeholder="특이사항 메모"></textarea>
-                </div>
-              </div>
-
-              <div className="bg-[#FDFBF7] border border-[#E8E4DB] rounded-xl flex items-center py-5 mb-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-                <div className="flex-1 text-center border-r border-[#E8E4DB]"><div className="font-sans font-bold text-xl text-[#2C2724]">{totalQty}PCS</div></div>
-                <div className="flex-[1.5] text-center"><div className="font-serif font-bold text-xl text-[#2C2724]">₩{totalAmount.toLocaleString()}</div></div>
-              </div>
-
-              <div className="bg-white border border-[#E8E4DB] rounded-xl overflow-hidden shadow-[0_2px_10px_rgba(0,0,0,0.02)] mb-8">
-                <div className="flex items-center gap-2 p-4 border-b border-[#E8E4DB] bg-[#FCFBF9]">
-                  <ClipboardList size={18} className="text-[#8B7355]" />
-                  <span className="font-serif font-bold text-[#3A3532] text-[15px]">구매 내역</span>
-                </div>
-                
-                <div className="overflow-x-auto no-scrollbar" onTouchStart={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()}>
-                  <div className="min-w-[620px]">
-                    <div className="grid grid-cols-[1.2fr_0.9fr_1.3fr_0.7fr_1.5fr_1fr_40px] text-[11px] text-[#8A847E] bg-[#FDFBF7] py-2 border-b border-[#E8E4DB] text-center">
-                      <div>구매일</div><div>분류</div><div>REF.</div><div>수량</div><div>금액</div><div>비고</div><div>삭제</div>
-                    </div>
-                    {(customerForm.purchases || []).map((p, idx) => (
-                      <div key={p.id} className="grid grid-cols-[1.2fr_0.9fr_1.3fr_0.7fr_1.5fr_1fr_40px] border-b border-[#F2EFE8] items-center text-[12px] text-[#4A443F]">
-                        <div className="relative w-full h-full flex items-center justify-center">
-                          <input 
-                            type="text" 
-                            value={p.date || ''} 
-                            onChange={(e) => updatePurchase(idx, 'date', formatDateInput(e.target.value))} 
-                            placeholder="YYYY.MM.DD" 
-                            maxLength="10"
-                            className="w-full bg-transparent text-center py-3 outline-none tracking-tight pl-2 pr-5" 
-                          />
-                          <div className="absolute right-0.5 w-5 h-5 flex items-center justify-center">
-                             <CalendarDays size={14} className="text-[#A8A29D] pointer-events-none" />
-                             <input 
-                                type="date" 
-                                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                                onChange={(e) => {
-                                  if(e.target.value) updatePurchase(idx, 'date', e.target.value.replace(/-/g, '.'));
-                                }}
-                             />
-                          </div>
-                        </div>
-
-                        <div className="relative border-l border-[#F2EFE8] h-full flex items-center justify-center">
-                          <select 
-                            value={p.type || 'WATCH'} 
-                            onChange={(e) => updatePurchase(idx, 'type', e.target.value)}
-                            className="w-full bg-transparent text-center py-3 outline-none appearance-none cursor-pointer pl-1 pr-3 text-[11px] font-sans"
-                          >
-                            <option value="WATCH">WATCH</option>
-                            <option value="STRAP">STRAP</option>
-                            <option value="OTHERS">OTHERS</option>
-                          </select>
-                          <ChevronRight size={10} className="absolute right-1 text-[#A8A29D] pointer-events-none rotate-90" />
-                        </div>
-
-                        <input type="text" value={p.ref || ''} onChange={(e) => updatePurchase(idx, 'ref', e.target.value)} placeholder="REF" className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" />
-                        <input type="number" value={p.qty || ''} onChange={(e) => updatePurchase(idx, 'qty', e.target.value)} placeholder="0" className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" />
-                        <div className="relative border-l border-[#F2EFE8] h-full flex items-center">
-                          <span className="absolute left-1.5 text-[#8A847E] text-[11px]">₩</span>
-                          <input type="text" value={formatAmount(p.amount)} onChange={(e) => updatePurchase(idx, 'amount', e.target.value)} placeholder="0" className="w-full bg-transparent text-right pr-2 py-3 outline-none" />
-                        </div>
-                        <input type="text" value={p.note || ''} onChange={(e) => updatePurchase(idx, 'note', e.target.value)} className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" placeholder="비고" />
-                        <div className="border-l border-[#F2EFE8] h-full flex items-center justify-center">
-                           <button onClick={() => confirmDeletePurchase(idx)} className="text-[#DCD6CC] hover:text-[#A06C6C] transition-colors"><Trash2 size={16} /></button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <button onClick={addPurchaseRow} className="w-full py-3 bg-[#6B5A47] hover:bg-[#5A4B3A] text-white flex items-center justify-center gap-2 transition-colors"><Plus size={16} /> <span className="font-sans text-sm tracking-wide">추가하기</span></button>
-              </div>
-            </div>
-          </div>
-        );
-      };
-
-      const renderInquiryModal = () => {
-        if (!isInquiryModalOpen || !inquiryForm) return null;
-
-        const handleSaveInquiry = async () => {
-          if (!(inquiryForm.customerName || '').trim()) { setAlertMessage("고객명을 입력해주세요."); return; }
-          if (!(inquiryForm.date || '').trim()) { setAlertMessage("문의일자를 입력해주세요."); return; }
-          const payload = { ...inquiryForm };
-          const targetId = payload.id;
-          delete payload.id; 
-          
-          if (user.uid !== 'local-test-user') {
-             if (targetId) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'inquiries', targetId), payload);
-             else await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'inquiries'), payload);
-          }
-          setIsInquiryModalOpen(false); setInquiryForm(null); setFocusedRefIndex(null);
-        };
-
-        const updateInquiryItem = (itemId, field, value) => {
-          const newItems = (inquiryForm.items || []).map(item => item.id === itemId ? { ...item, [field]: value } : item);
-          setInquiryForm({ ...inquiryForm, items: newItems });
-        };
-
-        const confirmDeleteInquiryItem = (itemId) => {
-          setConfirmDialog({
-             isOpen: true,
-             message: "해당 내역을\n삭제하시겠습니까?",
-             onConfirm: () => {
-                const newItems = (inquiryForm.items || []).filter(item => item.id !== itemId);
-                setInquiryForm({ ...inquiryForm, items: newItems });
-                setConfirmDialog({ isOpen: false, message: '', onConfirm: null });
-             }
-          });
-        };
-
-        const addInquiryItem = () => {
-          setInquiryForm({ ...inquiryForm, items: [...(inquiryForm.items || []), { id: Date.now().toString(), date: '', ref: '', proposedDate: '', note: '', isCompleted: false }] });
-        };
-
-        const handleCustomerClick = () => {
-          const customer = customers.find((c) => c.name === inquiryForm.customerName && c.phone === inquiryForm.customerPhone);
-          if (customer) {
-            setCustomerForm(JSON.parse(JSON.stringify(customer))); setIsCustomerModalOpen(true); setActiveTab('customer'); setIsInquiryModalOpen(false);
-          } else { setAlertMessage("구매내역이 \n없습니다."); }
-        };
-
-        const sortedItems = [...(inquiryForm.items || [])].sort((a, b) => (a.isCompleted === b.isCompleted ? 0 : a.isCompleted ? 1 : -1));
-
-        return (
-          <div className="absolute inset-0 bg-[#FCFBF9] z-[100] flex flex-col font-sans animate-in slide-in-from-bottom-5">
-            <div className="flex justify-between items-center px-5 pt-8 pb-4 bg-[#FCFBF9] sticky top-0 z-20 shrink-0">
-              <button onClick={() => { setIsInquiryModalOpen(false); setFocusedRefIndex(null); }} className="text-[#8A847E] text-[15px] hover:text-[#4A443F] py-2">취소</button>
-              <a href="https://www.patek.com/en" target="_blank" rel="noopener noreferrer" className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center top-6">
-                 <img src="./logo.png" alt="Logo" className="w-12 h-12 object-contain" />
-                 <span className="font-serif text-[18px] text-[#3A3532] -mt-1">Wish List</span>
-              </a>
-              <button onClick={handleSaveInquiry} className="text-[#8B7355] text-[15px] font-medium hover:text-[#6B5335] py-2">저장</button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-5 pb-8 mt-6 no-scrollbar">
-              <div className="relative flex items-center justify-center mb-6 h-12">
-                <input type="text" value={inquiryForm.customerName || ''} onChange={(e) => setInquiryForm({...inquiryForm, customerName: e.target.value})} placeholder="고객명 입력" className="text-3xl font-serif font-bold text-center text-[#2C2724] bg-transparent outline-none w-full placeholder-[#DCD6CC]" />
-                <div className="absolute right-0 top-0 bottom-0 flex items-center justify-center p-1">
-                  <img src="./customer.png" alt="Customer" className="h-full w-auto object-contain cursor-pointer hover:opacity-80 transition-opacity" onClick={handleCustomerClick} />
-                </div>
-              </div>
-
-              <div className="bg-white border border-[#E8E4DB] rounded-xl p-5 mb-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-                <div className="flex items-center py-3 border-b border-[#F2EFE8]">
-                  <span className="text-[13px] text-[#8A847E] w-[55px] shrink-0">분류</span>
-                  <div className="flex gap-2 flex-1 relative">
-                    <select 
-                      value={inquiryForm.type || '신규'} 
-                      onChange={(e) => setInquiryForm({...inquiryForm, type: e.target.value})} 
-                      className="flex-1 bg-transparent outline-none text-[#2C2724] text-sm appearance-none cursor-pointer w-full"
-                    >
-                      <option value="기존">기존</option>
-                      <option value="신규">신규</option>
-                    </select>
-                    <ChevronRight size={14} className="absolute right-1 top-1/2 -translate-y-1/2 text-[#A8A29D] pointer-events-none rotate-90" />
-                  </div>
-                </div>
-
-                <div className="flex items-center py-3 border-b border-[#F2EFE8]">
-                  <span className="text-[13px] text-[#8A847E] w-[55px] shrink-0">문의일자</span>
-                  <div className="flex-1 flex items-center gap-2">
-                     <input 
-                       type="text" 
-                       value={inquiryForm.date || ''} 
-                       onChange={(e) => setInquiryForm({...inquiryForm, date: formatDateInput(e.target.value)})} 
-                       className="bg-transparent outline-none text-[#2C2724] text-sm flex-1 tracking-tight" 
-                       placeholder="YYYY.MM.DD" 
-                       maxLength="10" 
-                     />
-                     <div className="relative flex items-center justify-center w-6 h-6">
-                        <CalendarDays size={18} className="text-[#A8A29D] pointer-events-none" />
-                        <input 
-                           type="date" 
-                           className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                           onChange={(e) => {
-                             if(e.target.value) setInquiryForm({...inquiryForm, date: e.target.value.replace(/-/g, '.')});
-                           }}
-                        />
-                     </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center py-3 border-b border-[#F2EFE8]">
-                  <span className="text-[13px] text-[#8A847E] w-[55px] shrink-0">고객명</span>
-                  <input type="text" value={inquiryForm.customerName || ''} onChange={(e) => setInquiryForm({...inquiryForm, customerName: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-[50px]" placeholder="이름" />
-                  <span className="text-[13px] text-[#8A847E] w-auto whitespace-nowrap mx-2 shrink-0">생년월일</span>
-                  <input type="text" value={inquiryForm.birthDate || ''} onChange={(e) => setInquiryForm({...inquiryForm, birthDate: formatBirthDate(e.target.value)})} className="bg-transparent outline-none text-[#4A443F] text-sm text-right w-[76px] shrink-0 tracking-tight" placeholder="YYYY.MM.DD" maxLength="10" />
-                </div>
-                <div className="flex items-center py-3 border-b border-[#F2EFE8]">
-                  <span className="text-[13px] text-[#8A847E] w-[60px] shrink-0">연락처</span>
-                  <input type="text" value={inquiryForm.customerPhone || ''} onChange={(e) => setInquiryForm({...inquiryForm, customerPhone: formatPhoneNumber(e.target.value)})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-0" placeholder="010-0000-0000" maxLength="13" />
-                </div>
-                <div className="flex items-center py-3 border-b border-[#F2EFE8]">
-                  <span className="text-[13px] text-[#8A847E] w-[60px] shrink-0">직업</span>
-                  <input type="text" value={inquiryForm.job || ''} onChange={(e) => setInquiryForm({...inquiryForm, job: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-0" placeholder="직업 입력" />
-                </div>
-                <div className="flex items-center py-3 border-b border-[#F2EFE8]">
-                  <span className="text-[13px] text-[#8A847E] w-[60px] shrink-0">특이사항</span>
-                  <input type="text" value={inquiryForm.notes || ''} onChange={(e) => setInquiryForm({...inquiryForm, notes: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-0" placeholder="특이사항" />
-                </div>
-                <div className="flex items-start pt-3">
-                  <span className="text-[13px] text-[#8A847E] w-[60px] shrink-0 mt-1">메모</span>
-                  <textarea value={inquiryForm.memo || ''} onChange={(e) => setInquiryForm({...inquiryForm, memo: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm resize-none h-16 min-w-0" placeholder="메모 입력"></textarea>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 mb-3 ml-1">
-                <ClipboardList size={18} className="text-[#8B7355]" />
-                <h3 className="font-serif font-bold text-[#3A3532] text-[15px]">구매 희망 제품</h3>
-              </div>
-              <div className="bg-white border border-[#E8E4DB] rounded-xl overflow-hidden shadow-[0_2px_10px_rgba(0,0,0,0.02)] mb-8">
-                <div className="overflow-x-visible no-scrollbar" onTouchStart={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()}>
-                  <div className="min-w-[500px]">
-                    <div className="grid grid-cols-[30px_1.2fr_1.4fr_1.2fr_1.2fr_30px] text-[11px] text-[#8A847E] bg-[#FDFBF7] py-2 border-b border-[#E8E4DB] text-center">
-                      <div></div><div>날짜</div><div>REF.</div><div>제시일</div><div>비고</div><div>삭제</div>
-                    </div>
-                    {sortedItems.map((item) => (
-                      <div key={item.id} className={`grid grid-cols-[30px_1.2fr_1.4fr_1.2fr_1.2fr_30px] border-b border-[#F2EFE8] items-center text-[12px] transition-all duration-300 relative ${item.isCompleted ? 'bg-[#F9F8F6] text-[#A8A29D] opacity-70 line-through' : 'text-[#4A443F]'}`}>
-                        <div className="flex justify-center p-2">
-                          <input type="checkbox" checked={item.isCompleted} onChange={(e) => updateInquiryItem(item.id, 'isCompleted', e.target.checked)} className="w-[14px] h-[14px] accent-[#8B7355] cursor-pointer" />
-                        </div>
-                        <div className="relative w-full h-full flex items-center justify-center">
-                          <input 
-                            type="text" 
-                            value={item.date || ''} 
-                            onChange={(e) => updateInquiryItem(item.id, 'date', formatDateInput(e.target.value))} 
-                            disabled={item.isCompleted} 
-                            placeholder="YYYY.MM.DD" 
-                            maxLength="10"
-                            className="w-full bg-transparent text-center py-3 outline-none tracking-tight pl-2 pr-5" 
-                          />
-                          <div className="absolute right-0.5 w-5 h-5 flex items-center justify-center">
-                             <CalendarDays size={14} className="text-[#A8A29D] pointer-events-none" />
-                             <input 
-                                type="date" 
-                                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                                disabled={item.isCompleted}
-                                onChange={(e) => {
-                                  if(e.target.value) updateInquiryItem(item.id, 'date', e.target.value.replace(/-/g, '.'));
-                                }}
-                             />
-                          </div>
-                        </div>
-                        
-                        <div className="relative border-l border-[#F2EFE8] h-full flex flex-col justify-center">
-                            <input 
-                              type="text" 
-                              value={item.ref || ''} 
-                              onChange={(e) => updateInquiryItem(item.id, 'ref', e.target.value.toUpperCase())} 
-                              onFocus={() => setFocusedRefIndex(item.id)}
-                              onBlur={() => setFocusedRefIndex(null)}
-                              disabled={item.isCompleted} 
-                              placeholder="REF" 
-                              className="w-full bg-transparent text-center py-3 outline-none" 
-                            />
-                            {focusedRefIndex === item.id && (item.ref || '').length > 0 && (
-                                <div className="absolute top-[90%] left-1/2 -translate-x-1/2 w-[140px] bg-white border border-[#E8E4DB] z-[150] max-h-[160px] overflow-y-auto shadow-xl rounded-md">
-                                    {PATEK_REFS.filter(r => r.includes(item.ref)).map(match => (
-                                        <div
-                                           key={match}
-                                           className="px-3 py-2 text-center text-[12px] hover:bg-[#F2EFE8] cursor-pointer text-[#4A443F] font-sans transition-colors"
-                                           onMouseDown={(e) => {
-                                               e.preventDefault(); 
-                                               updateInquiryItem(item.id, 'ref', match);
-                                               setFocusedRefIndex(null);
-                                           }}
-                                        >
-                                           {match}
-                                        </div>
-                                    ))}
-                                    {PATEK_REFS.filter(r => r.includes(item.ref)).length === 0 && (
-                                        <div className="px-3 py-2 text-center text-[11px] text-[#A8A29D]">검색 결과 없음</div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-
-                        <input type="text" value={item.proposedDate || ''} onChange={(e) => updateInquiryItem(item.id, 'proposedDate', e.target.value)} disabled={item.isCompleted} placeholder="제시일" className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" />
-                        <input type="text" value={item.note || ''} onChange={(e) => updateInquiryItem(item.id, 'note', e.target.value)} disabled={item.isCompleted} placeholder="비고" className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" />
-                        <div className="border-l border-[#F2EFE8] h-full flex items-center justify-center">
-                           <button onClick={() => confirmDeleteInquiryItem(item.id)} disabled={item.isCompleted} className="text-[#DCD6CC] hover:text-[#A06C6C] transition-colors"><Trash2 size={16} /></button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <button onClick={addInquiryItem} className="w-full py-3 bg-[#6B5A47] hover:bg-[#5A4B3A] text-white flex items-center justify-center gap-2 transition-colors"><Plus size={16} /> <span className="font-sans text-sm tracking-wide">추가하기</span></button>
-              </div>
-            </div>
-          </div>
-        );
-      };
-
-      const renderTaskModal = () => {
-        if (!isTaskModalOpen || !taskForm) return null;
-        const isExisting = tasks.some(t => t.id === taskForm.id);
-
-        const handleSaveTask = async () => {
-          if (!(taskForm.title || '').trim()) { setAlertMessage("업무 내용을 입력해주세요."); return; }
-          const payload = { ...taskForm };
-          const targetId = payload.id;
-          delete payload.id; 
-          
-          if (user.uid !== 'local-test-user') {
-             if (isExisting && targetId) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'tasks', targetId), payload);
-             else await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'tasks'), { ...payload, isCompleted: false, isStarred: false });
-          }
-          setIsTaskModalOpen(false); setTaskForm(null);
-        };
-
-        const handleDeleteTask = async () => { 
-           if (user.uid !== 'local-test-user') await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'tasks', taskForm.id));
-           setIsTaskModalOpen(false); setTaskForm(null); 
-        };
-
+      const renderAddModal = () => {
+        if (!isAddModalOpen) return null;
         return (
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm z-[100] flex flex-col justify-end">
             <div className="bg-[#FCFBF9] relative z-[101] rounded-t-3xl p-7 w-full animate-in slide-in-from-bottom-full duration-300 shadow-[0_-15px_40px_rgba(0,0,0,0.15)] border-t border-[#E8E4DB] max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-7">
-                <h3 className="text-xl font-serif tracking-widest text-[#3A3532]">{isExisting ? '업무 수정' : '새로운 업무'}</h3>
-                <button onClick={() => setIsTaskModalOpen(false)} className="p-2 rounded-full hover:bg-[#F2EFE8] transition-colors"><X size={22} className="text-[#8A847E]" strokeWidth={1.5} /></button>
+                <h3 className="text-xl font-serif tracking-widest text-[#3A3532]">{formData.id ? '일정 수정' : '새로운 일정'}</h3>
+                <button onClick={() => { setIsAddModalOpen(false); setIsMultiDay(false); }} className="p-2 rounded-full hover:bg-[#F2EFE8] transition-colors"><X size={22} className="text-[#8A847E]" strokeWidth={1.5} /></button>
               </div>
               <div className="space-y-7">
                 <div>
                   <label className="block text-[11px] font-medium tracking-widest text-[#8A847E] mb-2 uppercase font-sans">Date</label>
-                  <input type="date" value={taskForm.date || ''} onChange={(e) => setTaskForm({...taskForm, date: e.target.value})} className="w-full bg-transparent border-b border-[#DCD6CC] py-2 text-[#4A443F] focus:border-[#8B7355] outline-none transition-all font-serif text-sm" />
+                  <div className="flex items-center gap-2">
+                    <input type="date" value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} className="flex-1 bg-transparent border-b border-[#DCD6CC] py-2 text-[#4A443F] focus:border-[#8B7355] outline-none transition-all font-serif text-sm" />
+                    {isMultiDay && (
+                      <><span className="text-[#8A847E] font-serif">~</span><input type="date" value={formData.endDate} min={formData.date} onChange={(e) => setFormData({...formData, endDate: e.target.value})} className="flex-1 bg-transparent border-b border-[#DCD6CC] py-2 text-[#4A443F] focus:border-[#8B7355] outline-none transition-all font-serif text-sm animate-in fade-in" /></>
+                    )}
+                    <button onClick={() => { setIsMultiDay(!isMultiDay); if (isMultiDay) setFormData({ ...formData, endDate: '' }); }} className="p-1.5 rounded-[4px] bg-[#F2EFE8] text-[#6B635C] hover:bg-[#E8E4DB] hover:text-[#2C2724] border border-[#E8E4DB] transition-all shrink-0 flex items-center justify-center ml-1 shadow-sm" title={isMultiDay ? "단일 일정으로 변경" : "기간 일정 추가"}>
+                      {isMultiDay ? <X size={16} strokeWidth={2} /> : <Plus size={16} strokeWidth={2} />}
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-[11px] font-medium tracking-widest text-[#8A847E] mb-3 uppercase font-sans">Category</label>
-                  <div className="flex gap-2">
-                    {TASK_CATEGORIES.map(cat => (
-                      <button key={cat.id} onClick={() => setTaskForm({...taskForm, category: cat.label})} className={`px-4 py-2 rounded-[6px] text-[12px] font-sans transition-all ${taskForm.category === cat.label ? `${cat.badgeClass} font-bold shadow-sm` : 'bg-white text-[#8A847E] border border-[#E8E4DB] hover:bg-[#F2EFE8]'}`}>{cat.label}</button>
+                  <div className="flex flex-wrap gap-2">
+                    {CATEGORIES.map(cat => (
+                      <button key={cat.id} onClick={() => setFormData({...formData, categoryId: cat.id})} className={`px-4 py-1.5 rounded-[3px] text-xs font-medium tracking-wide transition-all border font-sans ${formData.categoryId === cat.id ? `border-transparent ${cat.color} ${cat.textColor} shadow-md scale-[1.02]` : 'bg-white text-[#8A847E] border-[#E8E4DB] hover:bg-[#F2EFE8]'}`}>{cat.label}</button>
                     ))}
                   </div>
                 </div>
                 <div>
                   <label className="block text-[11px] font-medium tracking-widest text-[#8A847E] mb-2 uppercase font-sans">Title</label>
-                  <input type="text" placeholder="업무 내용을 입력하세요" value={taskForm.title || ''} onChange={(e) => setTaskForm({...taskForm, title: e.target.value})} className="w-full bg-transparent border-b border-[#DCD6CC] py-2 text-[#4A443F] placeholder-[#C2BDB5] focus:border-[#8B7355] outline-none transition-all font-sans text-sm font-medium" />
+                  <input type="text" placeholder="일정 제목" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full bg-transparent border-b border-[#DCD6CC] py-2 text-[#4A443F] placeholder-[#C2BDB5] focus:border-[#8B7355] outline-none transition-all font-sans text-sm" />
                 </div>
                 <div>
                   <label className="block text-[11px] font-medium tracking-widest text-[#8A847E] mb-2 uppercase font-sans">Memo</label>
-                  <textarea rows="3" placeholder="상세 내용을 입력하세요" value={taskForm.memo || ''} onChange={(e) => setTaskForm({...taskForm, memo: e.target.value})} className="w-full bg-white border border-[#E8E4DB] rounded-sm shadow-sm p-4 text-[#4A443F] placeholder-[#C2BDB5] focus:ring-1 focus:ring-[#8B7355] focus:border-[#8B7355] outline-none transition-all resize-none text-sm font-serif leading-relaxed"></textarea>
+                  <textarea rows="3" placeholder="상세 내용을 입력하세요" value={formData.content} onChange={(e) => setFormData({...formData, content: e.target.value})} className="w-full bg-white border border-[#E8E4DB] rounded-sm shadow-sm p-4 text-[#4A443F] placeholder-[#C2BDB5] focus:ring-1 focus:ring-[#8B7355] focus:border-[#8B7355] outline-none transition-all resize-none text-sm font-serif leading-relaxed"></textarea>
                 </div>
-                {isExisting ? (
-                  <div className="flex gap-3 w-full mt-2">
-                    <button onClick={handleSaveTask} className="flex-1 bg-[#3A3532] hover:bg-[#2A2522] text-[#F3EFE8] font-serif tracking-widest py-4 rounded-sm transition-colors shadow-lg text-sm border border-[#2A2522]">수정 완료</button>
-                    <button onClick={handleDeleteTask} className="flex-1 bg-white hover:bg-[#FFF5F5] text-[#A06C6C] font-serif tracking-widest py-4 rounded-sm transition-colors border border-[#E8D8D8] text-sm shadow-sm">삭제</button>
-                  </div>
-                ) : (
-                  <button onClick={handleSaveTask} className="w-full bg-[#3A3532] hover:bg-[#2A2522] text-[#F3EFE8] font-serif tracking-widest py-4 rounded-sm mt-2 transition-colors shadow-lg text-sm border border-[#2A2522]">저장하기</button>
-                )}
+                <button onClick={handleSaveEvent} className="w-full bg-[#3A3532] hover:bg-[#2A2522] text-[#F3EFE8] font-serif tracking-widest py-4 rounded-sm mt-2 transition-colors shadow-lg text-sm border border-[#2A2522]">{formData.id ? '수정 완료' : '저장하기'}</button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const renderViewModal = () => {
+        if (!isViewModalOpen || !selectedEvent) return null;
+        const displayDate = selectedEvent.endDate ? `${selectedEvent.date} ~ ${selectedEvent.endDate}` : selectedEvent.date;
+        const handleEditClick = () => {
+          setFormData({ id: selectedEvent.id, date: selectedEvent.date, endDate: selectedEvent.endDate || '', title: selectedEvent.title, content: selectedEvent.content, categoryId: selectedEvent.categoryId || 'sale' });
+          setIsMultiDay(!!selectedEvent.endDate && selectedEvent.endDate !== selectedEvent.date);
+          setIsViewModalOpen(false); setIsAddModalOpen(true);
+        };
+        const handleDeleteEvent = async (id) => {
+          if (user.uid !== 'local-test-user') await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'events', id));
+          setIsViewModalOpen(false);
+        };
+        return (
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
+            <div className="bg-[#FCFBF9] relative z-[101] rounded-xl p-8 w-full max-w-sm animate-in fade-in duration-300 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-[#E8E4DB]">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <span className={`inline-block px-3 py-1 rounded-[3px] text-[10px] tracking-wider font-medium mb-3 border font-sans ${selectedEvent.category.color} ${selectedEvent.category.textColor} ${selectedEvent.category.border}`}>{selectedEvent.category.label}</span>
+                  <h3 className="text-2xl font-serif text-[#3A3532] break-all leading-snug">{selectedEvent.title}</h3>
+                  <p className="text-[13px] tracking-widest text-[#8A847E] mt-3 font-serif">{displayDate}</p>
+                </div>
+                <button onClick={() => setIsViewModalOpen(false)} className="p-1.5 rounded-full hover:bg-[#F2EFE8] transition-colors -mr-2 -mt-2"><X size={22} className="text-[#8A847E]" strokeWidth={1.5} /></button>
+              </div>
+              <div className="bg-white rounded-sm p-5 min-h-[140px] mb-8 whitespace-pre-wrap text-[#4A443F] text-sm border border-[#E8E4DB] shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] font-serif leading-relaxed">
+                {selectedEvent.content || '내용이 없습니다.'}
+              </div>
+              <div className="flex gap-3 w-full">
+                <button onClick={handleEditClick} className="flex-1 bg-[#3A3532] hover:bg-[#2A2522] text-[#F3EFE8] font-serif tracking-widest py-3.5 rounded-sm transition-colors shadow-md border border-[#2A2522] text-sm">수정</button>
+                <button onClick={() => handleDeleteEvent(selectedEvent.id)} className="flex-1 bg-white hover:bg-[#FFF5F5] text-[#A06C6C] font-serif tracking-widest py-3.5 rounded-sm transition-colors border border-[#E8D8D8] text-sm">삭제</button>
               </div>
             </div>
           </div>
