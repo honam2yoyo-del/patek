@@ -108,9 +108,7 @@
         ? firebaseConfig.projectId 
         : (typeof __app_id !== 'undefined' ? __app_id : 'patek-philippe-app');
 
-    const INITIAL_PATEK_REFS = [
-      "5320G-011", "5327G-001", "5327R-001", "7140G-001", "7140R-001", "5236P-001", "5236P-010", "5236P-011", "5160/500R-001", "6159G-001", "5270/1R-001", "5270J-001", "5270P-014", "5270P-015", "5270P-016", "5270P-017", "5271P-010", "5271/11P-010", "5271/12P-010", "5470P-001", "5204G-001", "5204G-010", "5370R-001", "5373P-001", "6102R-001", "6102P-001", "6104R-001", "6104P-010", "6104/11P-010", "6104/12P-010", "6104/13P-010", "6105G-001", "5520RG-001", "5322G-001", "5322G-010", "5260/1455R-001", "5260/355R-001", "7040/250G-001", "5178G-012", "7047G-001", "5303R-001", "5304/301R-001", "5308G-001", "5316/50P-001", "5374G-001", "5374/300P-001", "5374/400P-001", "5531G-001", "6002R-001", "6301P-001", "6300GR-001", "6300/400G-001", "6300/401G-001", "6300/403G-001", "27000M-001", "5328G-001", "5212A-001", "5205G-013", "5205R-011", "5396G-017", "5396R-011", "5396R-016", "4946G-001", "4946R-001", "4947/1A-001", "4948G-010", "4948R-001", "5235/50R-001", "5326G-001", "5172G-001", "5172G-010", "5905/1A-001", "5905R-010", "5961R-010", "5961P-001", "5224R-001", "5524G-010", "5524R-001", "5231G-001", "5330G-001", "5930P-001", "7129J-001", "5935A-001", "7130G-016", "7130R-014", "5924G-001", "5924G-010", "7121/200G-001", "5180/1R-001", "5249R-001", "5088/100P-001", "5226G-001", "5227G-010", "5227G-015", "5227J-001", "5227R-001", "6007G-001", "6007G-010", "6007G-011", "6119G-001", "6119R-001", "6196P-001", "4997/200G-001", "4997/200R-001", "7200R-001", "7200/50G-001", "7200/50G-012", "7042/100R-010", "7042/100G-010", "5738/1R-001", "5738P-001", "5738R-001", "5738/51G-001", "5822P-001", "5821/1AR-001", "5821/1A-001", "7128/1G-001", "7128/1R-001", "5712/1R-001", "5726/1A-014", "5726A-001", "5811/1G-001", "5811/1460G-001", "5740/1G-001", "5980/1400G-010", "5980/1400R-011", "5980/60G-001", "5990/1A-011", "5990/1R-001", "5990/1400G-001", "5990/1421G-001", "5990/1422G-001", "5990/1423G-001", "7010/1G-013", "7010/1R-013", "7010G-013", "7010R-013", "7118/1A-001", "7118/1A-011", "7118/1200A-001", "7118/1200A-011", "7118/1R-001", "7118/1R-010", "7118/1200R-001", "7118/1200R-010", "7118/1300R-001", "7118/1450G-001", "7118/1450R-001", "7118/1451G-001", "7118/1452G-001", "7118/1453G-001", "5723/1R-001", "5723/1R-010", "5723/112R-001", "5711/110P-001", "5711/111P-001", "5711/112P-001", "5711/113P-001", "5810/1G-001", "5610/1P-001", "5810G-001", "958G-001", "5167A-001", "5167R-001", "5164G-001", "5164R-001", "5168G-001", "5168G-010", "5968A-001", "5968G-001", "5968G-010", "5968R-001", "5072R-001", "5261R-001", "5267/200A-001", "5267/200A-010", "5267/200A-011", "5268/200R-010", "5268/461G-001", "5269R-001", "7968/300R-001", "7300/1200R-001", "7300/1200A-001", "4910/1200A-001", "4910/1200A-010", "4910/1200A-011", "4910/1201R-010", "7300/1200A-010", "7300/1200R-010", "7340/1R-001", "973J-001", "980G-010", "980J-011", "980R-001", "983J-001", "5738/50J-011", "5077/100R-071", "5738/50G-029", "992/187G-001", "992/160G-001", "984/101J-001", "20191M-001", "21000M-001", "20171M-001"
-    ];
+    const INITIAL_PATEK_REFS = [];
 
     const getNextDayStr = (dateStr) => {
       const [y, m, d] = dateStr.split('-').map(Number);
@@ -211,8 +209,8 @@
       );
     };
 
-    const CustomConfirm = ({ message, onConfirm, onClose }) => {
-      if (!message) return null;
+    const CustomConfirm = ({ isOpen, message, onConfirm, onClose }) => {
+      if (!isOpen || !message) return null;
       return (
         <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-6 animate-in fade-in duration-200" style={{ zIndex: 9999 }}>
           <div className="bg-[#FCFBF9] rounded-xl p-6 w-full max-w-[280px] shadow-2xl border border-[#E8E4DB] flex flex-col items-center animate-in zoom-in-95 duration-200 relative z-[111]">
@@ -250,7 +248,7 @@
       const [inquiries, setInquiries] = useState([]);
       const [tasks, setTasks] = useState([]);
       const [albums, setAlbums] = useState([]);
-      const [patekRefs, setPatekRefs] = useState(INITIAL_PATEK_REFS); // 공용 REF 데이터
+      const [patekRefs, setPatekRefs] = useState(INITIAL_PATEK_REFS);
 
       const [currentDate, setCurrentDate] = useState(new Date());
       const [searchQuery, setSearchQuery] = useState('');
@@ -285,7 +283,7 @@
       const [formData, setFormData] = useState({ id: '', date: new Date().toISOString().split('T')[0], endDate: '', title: '', content: '', categoryId: 'sale' });
       
       const [focusedRefIndex, setFocusedRefIndex] = useState(null);
-      const [newRefInput, setNewRefInput] = useState(''); // Settings 탭에서 사용할 새 REF 입력 상태
+      const [newRefInput, setNewRefInput] = useState(''); 
       const [globalRefSearchQuery, setGlobalRefSearchQuery] = useState('');
 
       useEffect(() => {
@@ -364,7 +362,6 @@
           setAlbums(snap.docs.map(d => ({id: d.id, ...d.data()})));
         });
 
-        // 공용 REF 데이터베이스 리스너 (모든 사용자가 공유)
         const refDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'globals', 'refList');
         const unsubRefs = onSnapshot(refDocRef, (docSnap) => {
             if (docSnap.exists()) {
@@ -373,7 +370,6 @@
                     setPatekRefs(data.refs.sort());
                 }
             } else {
-                // 문서가 없으면 로컬 데이터로 초기화 (최초 1회)
                 setDoc(refDocRef, { refs: INITIAL_PATEK_REFS }).catch(e => console.error("Initial Ref setup failed", e));
             }
         });
@@ -702,15 +698,28 @@
         if (!user || !db || user.uid === 'local-test-user') return;
         const val = newRefInput.trim().toUpperCase();
         if(!val) return;
-        if(patekRefs.includes(val)) {
-            setAlertMessage("이미 등록된 REF입니다.");
+        
+        const newRefs = val.split(',').map(s => s.trim()).filter(s => s);
+        let addedCount = 0;
+        let updatedRefs = [...patekRefs];
+        
+        newRefs.forEach(r => {
+           if(!updatedRefs.includes(r)) {
+               updatedRefs.push(r);
+               addedCount++;
+           }
+        });
+
+        if(addedCount === 0) {
+            setAlertMessage("추가할 새로운 REF가 없습니다.\n(이미 등록되어 있거나 잘못된 입력)");
             return;
         }
-        const updatedRefs = [...patekRefs, val].sort();
+
+        updatedRefs.sort();
         try {
             await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'globals', 'refList'), { refs: updatedRefs });
             setNewRefInput('');
-            setAlertMessage("REF가 데이터베이스에 추가되었습니다.");
+            setAlertMessage(`${addedCount}개의 REF가\n데이터베이스에 추가되었습니다.`);
         } catch(e) {
             setAlertMessage("REF 저장에 실패했습니다.");
         }
@@ -719,7 +728,7 @@
       const handleDeleteGlobalRef = (refToRemove) => {
         setConfirmDialog({
             isOpen: true,
-            message: `${refToRemove}를 삭제하시겠습니까?\n(모든 사용자에게 적용됩니다)`,
+            message: `${refToRemove}를\n삭제하시겠습니까?\n(모든 사용자에게 적용됩니다)`,
             onConfirm: async () => {
                 if (user && db && user.uid !== 'local-test-user') {
                     const updatedRefs = patekRefs.filter(r => r !== refToRemove);
@@ -727,6 +736,25 @@
                         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'globals', 'refList'), { refs: updatedRefs });
                     } catch(e) {
                         setAlertMessage("REF 삭제에 실패했습니다.");
+                    }
+                }
+                setConfirmDialog({ isOpen: false, message: '', onConfirm: null });
+            }
+        });
+      };
+
+      const handleDeleteAllGlobalRefs = () => {
+        if (patekRefs.length === 0) return;
+        setConfirmDialog({
+            isOpen: true,
+            message: `등록된 모든 REF(${patekRefs.length}개)를\n전체 삭제하시겠습니까?\n(모든 사용자에게 적용됩니다)`,
+            onConfirm: async () => {
+                if (user && db && user.uid !== 'local-test-user') {
+                    try {
+                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'globals', 'refList'), { refs: [] });
+                        setAlertMessage("모든 REF가 삭제되었습니다.");
+                    } catch(e) {
+                        setAlertMessage("REF 전체 삭제에 실패했습니다.");
                     }
                 }
                 setConfirmDialog({ isOpen: false, message: '', onConfirm: null });
@@ -805,9 +833,14 @@
               
               {/* REF 데이터베이스 관리 섹션 */}
               <div className="bg-white border border-[#E8E4DB] rounded-xl p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-                <div className="flex items-center gap-2 mb-4">
-                  <ClipboardList size={20} className="text-[#8B7355]" />
-                  <h3 className="font-serif font-bold text-[#3A3532] text-[15px]">REF. 데이터베이스 관리</h3>
+                <div className="flex justify-between items-center gap-2 mb-4">
+                  <div className="flex items-center gap-2">
+                    <ClipboardList size={20} className="text-[#8B7355]" />
+                    <h3 className="font-serif font-bold text-[#3A3532] text-[15px]">REF. 데이터베이스 관리</h3>
+                  </div>
+                  <button onClick={handleDeleteAllGlobalRefs} className="text-[11px] text-[#FF3B30] border border-[#FFD6D6] px-2 py-1 rounded-md hover:bg-[#FFF5F5] transition-colors font-sans">
+                    전체 삭제
+                  </button>
                 </div>
                 <p className="text-[12px] text-[#8A847E] font-sans mb-4">이곳에서 추가/삭제된 REF 목록은 앱을 사용하는 모든 사용자에게 동일하게 반영됩니다.</p>
                 
@@ -829,14 +862,13 @@
                   </div>
                 </div>
 
-                <div className="flex gap-2 mb-4">
-                  <input 
-                    type="text" 
+                <div className="flex gap-2 mb-4 items-stretch">
+                  <textarea 
                     value={newRefInput} 
                     onChange={(e) => setNewRefInput(e.target.value.toUpperCase())} 
-                    placeholder="새로운 REF 입력 (예: 5711/1A-010)" 
-                    className="flex-1 border border-[#E8E4DB] rounded-[6px] px-3 py-2 text-[13px] outline-none font-sans" 
-                  />
+                    placeholder="새로운 REF 입력 (쉼표(,)로 구분하여 다중 추가 가능)" 
+                    className="flex-1 border border-[#E8E4DB] rounded-[6px] px-3 py-2 text-[13px] outline-none font-sans resize-none h-[60px]" 
+                  ></textarea>
                   <button onClick={handleAddGlobalRef} className="bg-[#3A3532] text-white px-4 rounded-[6px] text-[13px] font-medium transition-colors hover:bg-[#2A2522]">
                     추가
                   </button>
@@ -2220,7 +2252,7 @@
             {renderLinkNotFoundDialog()}
             
             <CustomAlert message={alertMessage} onClose={() => setAlertMessage('')} />
-            <CustomConfirm message={confirmDialog.message} onConfirm={confirmDialog.onConfirm} onClose={() => setConfirmDialog({...confirmDialog, isOpen: false})} />
+            <CustomConfirm isOpen={confirmDialog.isOpen} message={confirmDialog.message} onConfirm={confirmDialog.onConfirm} onClose={() => setConfirmDialog({...confirmDialog, isOpen: false})} />
           </div>
         </div>
       );
