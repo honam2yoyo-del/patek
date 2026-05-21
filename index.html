@@ -69,7 +69,6 @@
       </svg>
     );
     const Trash2 = ({size=24, strokeWidth=2, className=""}) => <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>;
-    const UploadIcon = ({size=24, strokeWidth=2, className=""}) => <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>;
     const GoogleIcon = ({size=20}) => (
       <svg width={size} height={size} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -238,7 +237,6 @@
       const [alertMessage, setAlertMessage] = useState(''); 
       const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null });
       const fileInputRef = useRef(null);
-      const csvInputRef = useRef(null); // CSV 업로드용 Ref 추가
       
       const [swipedItemId, setSwipedItemId] = useState(null);
       const touchState = useRef({ startX: 0, startY: 0, isScrolling: false });
@@ -414,104 +412,6 @@
           setAlbumForm({ ...albumForm, files: totalFiles });
         }
         if (fileInputRef.current) fileInputRef.current.value = '';
-      };
-
-      // CSV 파일 일괄 업로드 처리 로직
-      const handleCSVUpload = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        setAlertMessage("데이터를 파싱하고 있습니다...\n잠시만 기다려주세요.");
-        
-        const reader = new FileReader();
-        // 기본적으로 UTF-8로 읽습니다. 엑셀에서 'CSV UTF-8' 형식 저장이 권장됩니다.
-        reader.onload = async (event) => {
-            try {
-                const text = event.target.result;
-                const lines = text.split('\n').filter(line => line.trim() !== '');
-                if (lines.length < 2) {
-                    setAlertMessage("데이터가 없거나 잘못된 형식입니다.");
-                    return;
-                }
-                
-                // 첫 줄을 헤더로 파싱 (쌍따옴표 제거)
-                const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-                const parsedData = [];
-                
-                for (let i = 1; i < lines.length; i++) {
-                    const line = lines[i];
-                    const values = line.split(','); 
-                    const obj = {};
-                    headers.forEach((h, index) => {
-                        obj[h] = values[index] ? values[index].trim().replace(/"/g, '') : '';
-                    });
-                    parsedData.push(obj);
-                }
-
-                // 이름과 전화번호를 기준으로 구매내역 그룹화
-                const grouped = {};
-                parsedData.forEach(row => {
-                    const name = row['고객명'];
-                    if (!name) return; // 이름 없으면 무시
-                    
-                    const phone = row['연락처'] || '';
-                    const key = `${name}_${phone}`;
-                    
-                    if (!grouped[key]) {
-                        grouped[key] = {
-                            name,
-                            phone: formatPhoneNumber(phone),
-                            birthDate: formatBirthDate(row['생년월일'] || ''),
-                            job: '',
-                            notes: '',
-                            purchases: []
-                        };
-                    }
-                    
-                    grouped[key].purchases.push({
-                        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-                        date: row['구매일'] ? row['구매일'].replace(/-/g, '.') : '',
-                        type: row['분류'] || 'WATCH',
-                        ref: row['REF.'] || '',
-                        qty: row['수량'] || '1',
-                        amount: row['금액'] || '0',
-                        note: row['비고'] || ''
-                    });
-                });
-
-                if (user && db && user.uid !== 'local-test-user') {
-                    // Firebase 일괄 업로드 처리
-                    const uploadPromises = Object.values(grouped).map(async (newCust) => {
-                        // 이미 존재하는 고객인지 확인 (이름 + 폰번호 일치)
-                        const existingCust = customers.find(c => c.name === newCust.name && c.phone === newCust.phone);
-                        if (existingCust) {
-                            const existingPurchases = existingCust.purchases || [];
-                            // 중복 데이터 방지 (날짜와 REF가 완전히 똑같은 건 추가하지 않음)
-                            const uniqueNewPurchases = newCust.purchases.filter(np => 
-                                !existingPurchases.some(ep => ep.date === np.date && ep.ref === np.ref)
-                            );
-                            
-                            if (uniqueNewPurchases.length > 0) {
-                                const updatedPurchases = [...existingPurchases, ...uniqueNewPurchases];
-                                await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'customers', existingCust.id), { purchases: updatedPurchases });
-                            }
-                        } else {
-                            // 신규 고객이면 통째로 생성
-                            await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'customers'), newCust);
-                        }
-                    });
-                    
-                    await Promise.all(uploadPromises);
-                    setAlertMessage(`총 ${Object.values(grouped).length}명의 고객 및 구매 데이터가\n성공적으로 업로드되었습니다.`);
-                }
-            } catch(error) {
-                console.error(error);
-                setAlertMessage("업로드 중 오류가 발생했습니다.\n파일 형식을 확인해주세요.");
-            }
-            if (csvInputRef.current) csvInputRef.current.value = '';
-        };
-        
-        reader.readAsText(file, 'utf-8'); 
       };
 
       const removeFile = (index) => {
@@ -820,14 +720,6 @@
         return (
           <div className="flex flex-col h-full bg-[#FCFBF9] font-serif relative" onClick={closeSwipe}>
             <div className="flex flex-col items-center pt-[calc(env(safe-area-inset-top)+16px)] pb-4 relative z-20 shrink-0">
-              {/* CSV 업로드 버튼 추가 */}
-              <div className="absolute top-[calc(env(safe-area-inset-top)+16px)] right-5">
-                 <button onClick={() => csvInputRef.current?.click()} className="p-2 text-[#8A847E] hover:text-[#3A3532] transition-colors rounded-full hover:bg-[#F2EFE8]" title="CSV 데이터 업로드">
-                    <UploadIcon size={22} />
-                 </button>
-                 <input type="file" accept=".csv" ref={csvInputRef} onChange={handleCSVUpload} className="hidden" />
-              </div>
-              
               <a href="https://www.patek.com/en" target="_blank" rel="noopener noreferrer">
                 <img src="./logo.png" alt="Patek Philippe" className="w-16 h-16 mb-3 object-contain cursor-pointer" />
               </a>
@@ -1300,6 +1192,530 @@
               <div className="flex gap-3 w-full">
                 <button onClick={handleEditClick} className="flex-1 bg-[#3A3532] hover:bg-[#2A2522] text-[#F3EFE8] font-serif tracking-widest py-3.5 rounded-sm transition-colors shadow-md border border-[#2A2522] text-sm">수정</button>
                 <button onClick={() => handleDeleteEvent(selectedEvent.id)} className="flex-1 bg-white hover:bg-[#FFF5F5] text-[#A06C6C] font-serif tracking-widest py-3.5 rounded-sm transition-colors border border-[#E8D8D8] text-sm">삭제</button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const renderCustomerModal = () => {
+        if (!isCustomerModalOpen || !customerForm) return null;
+
+        const handleSaveCustomer = async () => {
+          if (!customerForm.name.trim()) { setAlertMessage("고객명을 입력해주세요."); return; }
+          const payload = { ...customerForm };
+          const targetId = payload.id;
+          delete payload.id; 
+          
+          if (user.uid !== 'local-test-user') {
+             if (targetId) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'customers', targetId), payload);
+             else await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'customers'), payload);
+          }
+          setIsCustomerModalOpen(false); setCustomerForm(null);
+        };
+
+        const updatePurchase = (index, field, value) => {
+          const newPurchases = [...customerForm.purchases];
+          if (field === 'amount') newPurchases[index][field] = value.replace(/,/g, '');
+          else newPurchases[index][field] = value;
+          setCustomerForm({ ...customerForm, purchases: newPurchases });
+        };
+
+        const confirmDeletePurchase = (index) => {
+          setConfirmDialog({
+             isOpen: true,
+             message: "해당 내역을\n삭제하시겠습니까?",
+             onConfirm: () => {
+                const newPurchases = customerForm.purchases.filter((_, i) => i !== index);
+                setCustomerForm({ ...customerForm, purchases: newPurchases });
+                setConfirmDialog({ isOpen: false, message: '', onConfirm: null });
+             }
+          });
+        };
+
+        const addPurchaseRow = () => {
+          setCustomerForm({ ...customerForm, purchases: [...customerForm.purchases, { id: Date.now().toString(), date: '', type: 'WATCH', ref: '', qty: '', amount: '', note: '' }] });
+        };
+
+        const handleWishlistClick = () => {
+          const inquiry = inquiries.find((i) => i.customerName === customerForm.name && i.customerPhone === customerForm.phone);
+          if (inquiry) {
+            setInquiryForm(JSON.parse(JSON.stringify(inquiry))); setIsInquiryModalOpen(true); setActiveTab('inquiries'); setIsCustomerModalOpen(false);
+          } else { setAlertMessage("현재 등록된\nWish List가 없습니다."); }
+        };
+
+        const totalQty = customerForm.purchases.reduce((sum, p) => sum + (Number(p.qty) || 0), 0);
+        const totalAmount = customerForm.purchases.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+
+        return (
+          <div className="absolute inset-0 bg-[#FCFBF9] z-[100] flex flex-col font-sans animate-in slide-in-from-bottom-5">
+            <div className="flex justify-between items-center px-5 pt-8 pb-4 bg-[#FCFBF9] sticky top-0 z-20 shrink-0">
+              <button onClick={() => setIsCustomerModalOpen(false)} className="text-[#8A847E] text-[15px] hover:text-[#4A443F] py-2">취소</button>
+              <a href="https://www.patek.com/en" target="_blank" rel="noopener noreferrer" className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center top-6">
+                 <img src="./logo.png" alt="Logo" className="w-12 h-12 object-contain" />
+                 <span className="font-serif text-[18px] text-[#3A3532] -mt-1">Customer</span>
+              </a>
+              <button onClick={handleSaveCustomer} className="text-[#8B7355] text-[15px] font-medium hover:text-[#6B5335] py-2">저장</button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-5 pb-8 mt-6 no-scrollbar">
+              <div className="relative flex items-center justify-center mb-6 h-12">
+                <input type="text" value={customerForm.name} onChange={(e) => setCustomerForm({...customerForm, name: e.target.value})} placeholder="고객명 입력" className="text-3xl font-serif font-bold text-center text-[#2C2724] bg-transparent outline-none w-full placeholder-[#DCD6CC]" />
+                <div className="absolute right-0 top-0 bottom-0 flex items-center justify-center p-1">
+                  <img src="./wish.png" alt="Wishlist" className="h-full w-auto object-contain cursor-pointer hover:opacity-80 transition-opacity drop-shadow-sm" onClick={handleWishlistClick} />
+                </div>
+              </div>
+
+              <div className="bg-white border border-[#E8E4DB] rounded-xl p-5 mb-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                <div className="flex items-center py-3 border-b border-[#F2EFE8]">
+                  <span className="text-[13px] text-[#8A847E] w-[55px] shrink-0">고객명</span>
+                  <input type="text" value={customerForm.name} onChange={(e) => setCustomerForm({...customerForm, name: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-[50px]" placeholder="이름" />
+                  <span className="text-[13px] text-[#8A847E] w-auto whitespace-nowrap mx-2 shrink-0">생년월일</span>
+                  <input type="text" value={customerForm.birthDate} onChange={(e) => setCustomerForm({...customerForm, birthDate: formatBirthDate(e.target.value)})} className="bg-transparent outline-none text-[#4A443F] text-sm text-right w-[76px] shrink-0 tracking-tight" placeholder="YYYY.MM.DD" maxLength="10" />
+                </div>
+                <div className="flex items-center py-3 border-b border-[#F2EFE8]">
+                  <span className="text-[13px] text-[#8A847E] w-[60px] shrink-0">연락처</span>
+                  <input type="text" value={customerForm.phone} onChange={(e) => setCustomerForm({...customerForm, phone: formatPhoneNumber(e.target.value)})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-0" placeholder="010-0000-0000" maxLength="13" />
+                </div>
+                <div className="flex items-center py-3 border-b border-[#F2EFE8]">
+                  <span className="text-[13px] text-[#8A847E] w-[60px] shrink-0">직업</span>
+                  <input type="text" value={customerForm.job} onChange={(e) => setCustomerForm({...customerForm, job: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-0" placeholder="직업 입력" />
+                </div>
+                <div className="flex items-start pt-3">
+                  <span className="text-[13px] text-[#8A847E] w-[60px] shrink-0 mt-1">특이사항</span>
+                  <textarea value={customerForm.notes} onChange={(e) => setCustomerForm({...customerForm, notes: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm resize-none h-16 min-w-0" placeholder="특이사항 메모"></textarea>
+                </div>
+              </div>
+
+              <div className="bg-[#FDFBF7] border border-[#E8E4DB] rounded-xl flex items-center py-5 mb-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                <div className="flex-1 text-center border-r border-[#E8E4DB]"><div className="font-sans font-bold text-xl text-[#2C2724]">{totalQty}PCS</div></div>
+                <div className="flex-[1.5] text-center"><div className="font-serif font-bold text-xl text-[#2C2724]">₩{totalAmount.toLocaleString()}</div></div>
+              </div>
+
+              <div className="bg-white border border-[#E8E4DB] rounded-xl overflow-hidden shadow-[0_2px_10px_rgba(0,0,0,0.02)] mb-8">
+                <div className="flex items-center gap-2 p-4 border-b border-[#E8E4DB] bg-[#FCFBF9]">
+                  <ClipboardList size={18} className="text-[#8B7355]" />
+                  <span className="font-serif font-bold text-[#3A3532] text-[15px]">구매 내역</span>
+                </div>
+                
+                <div className="overflow-x-auto no-scrollbar" onTouchStart={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()}>
+                  <div className="min-w-[620px]">
+                    <div className="grid grid-cols-[1.2fr_0.9fr_1.3fr_0.7fr_1.5fr_1fr_40px] text-[11px] text-[#8A847E] bg-[#FDFBF7] py-2 border-b border-[#E8E4DB] text-center">
+                      <div>구매일</div><div>분류</div><div>REF.</div><div>수량</div><div>금액</div><div>비고</div><div>삭제</div>
+                    </div>
+                    {customerForm.purchases.map((p, idx) => (
+                      <div key={p.id} className="grid grid-cols-[1.2fr_0.9fr_1.3fr_0.7fr_1.5fr_1fr_40px] border-b border-[#F2EFE8] items-center text-[12px] text-[#4A443F]">
+                        <div className="relative w-full h-full flex items-center justify-center">
+                          <input 
+                            type="text" 
+                            value={p.date} 
+                            onChange={(e) => updatePurchase(idx, 'date', formatDateInput(e.target.value))} 
+                            placeholder="YYYY.MM.DD" 
+                            maxLength="10"
+                            className="w-full bg-transparent text-center py-3 outline-none tracking-tight pl-2 pr-5" 
+                          />
+                          <div className="absolute right-0.5 w-5 h-5 flex items-center justify-center">
+                             <CalendarDays size={14} className="text-[#A8A29D] pointer-events-none" />
+                             <input 
+                                type="date" 
+                                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                onChange={(e) => {
+                                  if(e.target.value) updatePurchase(idx, 'date', e.target.value.replace(/-/g, '.'));
+                                }}
+                             />
+                          </div>
+                        </div>
+
+                        <div className="relative border-l border-[#F2EFE8] h-full flex items-center justify-center">
+                          <select 
+                            value={p.type || 'WATCH'} 
+                            onChange={(e) => updatePurchase(idx, 'type', e.target.value)}
+                            className="w-full bg-transparent text-center py-3 outline-none appearance-none cursor-pointer pl-1 pr-3 text-[11px] font-sans"
+                          >
+                            <option value="WATCH">WATCH</option>
+                            <option value="STRAP">STRAP</option>
+                            <option value="OTHERS">OTHERS</option>
+                          </select>
+                          <ChevronRight size={10} className="absolute right-1 text-[#A8A29D] pointer-events-none rotate-90" />
+                        </div>
+
+                        <input type="text" value={p.ref} onChange={(e) => updatePurchase(idx, 'ref', e.target.value)} placeholder="REF" className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" />
+                        <input type="number" value={p.qty} onChange={(e) => updatePurchase(idx, 'qty', e.target.value)} placeholder="0" className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" />
+                        <div className="relative border-l border-[#F2EFE8] h-full flex items-center">
+                          <span className="absolute left-1.5 text-[#8A847E] text-[11px]">₩</span>
+                          <input type="text" value={formatAmount(p.amount)} onChange={(e) => updatePurchase(idx, 'amount', e.target.value)} placeholder="0" className="w-full bg-transparent text-right pr-2 py-3 outline-none" />
+                        </div>
+                        <input type="text" value={p.note} onChange={(e) => updatePurchase(idx, 'note', e.target.value)} className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" placeholder="비고" />
+                        <div className="border-l border-[#F2EFE8] h-full flex items-center justify-center">
+                           <button onClick={() => confirmDeletePurchase(idx)} className="text-[#DCD6CC] hover:text-[#A06C6C] transition-colors"><Trash2 size={16} /></button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <button onClick={addPurchaseRow} className="w-full py-3 bg-[#6B5A47] hover:bg-[#5A4B3A] text-white flex items-center justify-center gap-2 transition-colors"><Plus size={16} /> <span className="font-sans text-sm tracking-wide">추가하기</span></button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const renderInquiryModal = () => {
+        if (!isInquiryModalOpen || !inquiryForm) return null;
+
+        const handleSaveInquiry = async () => {
+          if (!inquiryForm.customerName.trim()) { setAlertMessage("고객명을 입력해주세요."); return; }
+          if (!inquiryForm.date.trim()) { setAlertMessage("문의일자를 입력해주세요."); return; }
+          const payload = { ...inquiryForm };
+          const targetId = payload.id;
+          delete payload.id; 
+          
+          if (user.uid !== 'local-test-user') {
+             if (targetId) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'inquiries', targetId), payload);
+             else await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'inquiries'), payload);
+          }
+          setIsInquiryModalOpen(false); setInquiryForm(null); setFocusedRefIndex(null);
+        };
+
+        const updateInquiryItem = (itemId, field, value) => {
+          const newItems = inquiryForm.items.map(item => item.id === itemId ? { ...item, [field]: value } : item);
+          setInquiryForm({ ...inquiryForm, items: newItems });
+        };
+
+        const confirmDeleteInquiryItem = (itemId) => {
+          setConfirmDialog({
+             isOpen: true,
+             message: "해당 내역을\n삭제하시겠습니까?",
+             onConfirm: () => {
+                const newItems = inquiryForm.items.filter(item => item.id !== itemId);
+                setInquiryForm({ ...inquiryForm, items: newItems });
+                setConfirmDialog({ isOpen: false, message: '', onConfirm: null });
+             }
+          });
+        };
+
+        const addInquiryItem = () => {
+          setInquiryForm({ ...inquiryForm, items: [...inquiryForm.items, { id: Date.now().toString(), date: '', ref: '', proposedDate: '', note: '', isCompleted: false }] });
+        };
+
+        const handleCustomerClick = () => {
+          const customer = customers.find((c) => c.name === inquiryForm.customerName && c.phone === inquiryForm.customerPhone);
+          if (customer) {
+            setCustomerForm(JSON.parse(JSON.stringify(customer))); setIsCustomerModalOpen(true); setActiveTab('customer'); setIsInquiryModalOpen(false);
+          } else { setAlertMessage("구매내역이 \n없습니다."); }
+        };
+
+        const sortedItems = [...inquiryForm.items].sort((a, b) => (a.isCompleted === b.isCompleted ? 0 : a.isCompleted ? 1 : -1));
+
+        return (
+          <div className="absolute inset-0 bg-[#FCFBF9] z-[100] flex flex-col font-sans animate-in slide-in-from-bottom-5">
+            <div className="flex justify-between items-center px-5 pt-8 pb-4 bg-[#FCFBF9] sticky top-0 z-20 shrink-0">
+              <button onClick={() => { setIsInquiryModalOpen(false); setFocusedRefIndex(null); }} className="text-[#8A847E] text-[15px] hover:text-[#4A443F] py-2">취소</button>
+              <a href="https://www.patek.com/en" target="_blank" rel="noopener noreferrer" className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center top-6">
+                 <img src="./logo.png" alt="Logo" className="w-12 h-12 object-contain" />
+                 <span className="font-serif text-[18px] text-[#3A3532] -mt-1">Wish List</span>
+              </a>
+              <button onClick={handleSaveInquiry} className="text-[#8B7355] text-[15px] font-medium hover:text-[#6B5335] py-2">저장</button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-5 pb-8 mt-6 no-scrollbar">
+              <div className="relative flex items-center justify-center mb-6 h-12">
+                <input type="text" value={inquiryForm.customerName} onChange={(e) => setInquiryForm({...inquiryForm, customerName: e.target.value})} placeholder="고객명 입력" className="text-3xl font-serif font-bold text-center text-[#2C2724] bg-transparent outline-none w-full placeholder-[#DCD6CC]" />
+                <div className="absolute right-0 top-0 bottom-0 flex items-center justify-center p-1">
+                  <img src="./customer.png" alt="Customer" className="h-full w-auto object-contain cursor-pointer hover:opacity-80 transition-opacity" onClick={handleCustomerClick} />
+                </div>
+              </div>
+
+              <div className="bg-white border border-[#E8E4DB] rounded-xl p-5 mb-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                <div className="flex items-center py-3 border-b border-[#F2EFE8]">
+                  <span className="text-[13px] text-[#8A847E] w-[55px] shrink-0">분류</span>
+                  <div className="flex gap-2 flex-1 relative">
+                    <select 
+                      value={inquiryForm.type} 
+                      onChange={(e) => setInquiryForm({...inquiryForm, type: e.target.value})} 
+                      className="flex-1 bg-transparent outline-none text-[#2C2724] text-sm appearance-none cursor-pointer w-full"
+                    >
+                      <option value="기존">기존</option>
+                      <option value="신규">신규</option>
+                    </select>
+                    <ChevronRight size={14} className="absolute right-1 top-1/2 -translate-y-1/2 text-[#A8A29D] pointer-events-none rotate-90" />
+                  </div>
+                </div>
+
+                <div className="flex items-center py-3 border-b border-[#F2EFE8]">
+                  <span className="text-[13px] text-[#8A847E] w-[55px] shrink-0">문의일자</span>
+                  <div className="flex-1 flex items-center gap-2">
+                     <input 
+                       type="text" 
+                       value={inquiryForm.date} 
+                       onChange={(e) => setInquiryForm({...inquiryForm, date: formatDateInput(e.target.value)})} 
+                       className="bg-transparent outline-none text-[#2C2724] text-sm flex-1 tracking-tight" 
+                       placeholder="YYYY.MM.DD" 
+                       maxLength="10" 
+                     />
+                     <div className="relative flex items-center justify-center w-6 h-6">
+                        <CalendarDays size={18} className="text-[#A8A29D] pointer-events-none" />
+                        {/* Native Date Picker Overlay */}
+                        <input 
+                           type="date" 
+                           className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                           onChange={(e) => {
+                             if(e.target.value) setInquiryForm({...inquiryForm, date: e.target.value.replace(/-/g, '.')});
+                           }}
+                        />
+                     </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center py-3 border-b border-[#F2EFE8]">
+                  <span className="text-[13px] text-[#8A847E] w-[55px] shrink-0">고객명</span>
+                  <input type="text" value={inquiryForm.customerName} onChange={(e) => setInquiryForm({...inquiryForm, customerName: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-[50px]" placeholder="이름" />
+                  <span className="text-[13px] text-[#8A847E] w-auto whitespace-nowrap mx-2 shrink-0">생년월일</span>
+                  <input type="text" value={inquiryForm.birthDate} onChange={(e) => setInquiryForm({...inquiryForm, birthDate: formatBirthDate(e.target.value)})} className="bg-transparent outline-none text-[#4A443F] text-sm text-right w-[76px] shrink-0 tracking-tight" placeholder="YYYY.MM.DD" maxLength="10" />
+                </div>
+                <div className="flex items-center py-3 border-b border-[#F2EFE8]">
+                  <span className="text-[13px] text-[#8A847E] w-[60px] shrink-0">연락처</span>
+                  <input type="text" value={inquiryForm.customerPhone} onChange={(e) => setInquiryForm({...inquiryForm, customerPhone: formatPhoneNumber(e.target.value)})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-0" placeholder="010-0000-0000" maxLength="13" />
+                </div>
+                <div className="flex items-center py-3 border-b border-[#F2EFE8]">
+                  <span className="text-[13px] text-[#8A847E] w-[60px] shrink-0">직업</span>
+                  <input type="text" value={inquiryForm.job} onChange={(e) => setInquiryForm({...inquiryForm, job: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-0" placeholder="직업 입력" />
+                </div>
+                <div className="flex items-center py-3 border-b border-[#F2EFE8]">
+                  <span className="text-[13px] text-[#8A847E] w-[60px] shrink-0">특이사항</span>
+                  <input type="text" value={inquiryForm.notes} onChange={(e) => setInquiryForm({...inquiryForm, notes: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm min-w-0" placeholder="특이사항" />
+                </div>
+                <div className="flex items-start pt-3">
+                  <span className="text-[13px] text-[#8A847E] w-[60px] shrink-0 mt-1">메모</span>
+                  <textarea value={inquiryForm.memo} onChange={(e) => setInquiryForm({...inquiryForm, memo: e.target.value})} className="bg-transparent outline-none text-[#2C2724] flex-1 text-sm resize-none h-16 min-w-0" placeholder="메모 입력"></textarea>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 mb-3 ml-1">
+                <ClipboardList size={18} className="text-[#8B7355]" />
+                <h3 className="font-serif font-bold text-[#3A3532] text-[15px]">구매 희망 제품</h3>
+              </div>
+              <div className="bg-white border border-[#E8E4DB] rounded-xl overflow-hidden shadow-[0_2px_10px_rgba(0,0,0,0.02)] mb-8">
+                <div className="overflow-x-visible no-scrollbar" onTouchStart={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()}>
+                  <div className="min-w-[500px]">
+                    <div className="grid grid-cols-[30px_1.2fr_1.4fr_1.2fr_1.2fr_30px] text-[11px] text-[#8A847E] bg-[#FDFBF7] py-2 border-b border-[#E8E4DB] text-center">
+                      <div></div><div>날짜</div><div>REF.</div><div>제시일</div><div>비고</div><div>삭제</div>
+                    </div>
+                    {sortedItems.map((item) => (
+                      <div key={item.id} className={`grid grid-cols-[30px_1.2fr_1.4fr_1.2fr_1.2fr_30px] border-b border-[#F2EFE8] items-center text-[12px] transition-all duration-300 relative ${item.isCompleted ? 'bg-[#F9F8F6] text-[#A8A29D] opacity-70 line-through' : 'text-[#4A443F]'}`}>
+                        <div className="flex justify-center p-2">
+                          <input type="checkbox" checked={item.isCompleted} onChange={(e) => updateInquiryItem(item.id, 'isCompleted', e.target.checked)} className="w-[14px] h-[14px] accent-[#8B7355] cursor-pointer" />
+                        </div>
+                        <div className="relative w-full h-full flex items-center justify-center">
+                          <input 
+                            type="text" 
+                            value={item.date} 
+                            onChange={(e) => updateInquiryItem(item.id, 'date', formatDateInput(e.target.value))} 
+                            disabled={item.isCompleted} 
+                            placeholder="YYYY.MM.DD" 
+                            maxLength="10"
+                            className="w-full bg-transparent text-center py-3 outline-none tracking-tight pl-2 pr-5" 
+                          />
+                          <div className="absolute right-0.5 w-5 h-5 flex items-center justify-center">
+                             <CalendarDays size={14} className="text-[#A8A29D] pointer-events-none" />
+                             <input 
+                                type="date" 
+                                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                disabled={item.isCompleted}
+                                onChange={(e) => {
+                                  if(e.target.value) updateInquiryItem(item.id, 'date', e.target.value.replace(/-/g, '.'));
+                                }}
+                             />
+                          </div>
+                        </div>
+                        
+                        {/* 자동완성 기능이 추가된 REF 입력칸 */}
+                        <div className="relative border-l border-[#F2EFE8] h-full flex flex-col justify-center">
+                            <input 
+                              type="text" 
+                              value={item.ref} 
+                              onChange={(e) => updateInquiryItem(item.id, 'ref', e.target.value.toUpperCase())} 
+                              onFocus={() => setFocusedRefIndex(item.id)}
+                              onBlur={() => setFocusedRefIndex(null)}
+                              disabled={item.isCompleted} 
+                              placeholder="REF" 
+                              className="w-full bg-transparent text-center py-3 outline-none" 
+                            />
+                            {/* 드롭다운 영역 */}
+                            {focusedRefIndex === item.id && item.ref.length > 0 && (
+                                <div className="absolute top-[90%] left-1/2 -translate-x-1/2 w-[140px] bg-white border border-[#E8E4DB] z-[150] max-h-[160px] overflow-y-auto shadow-xl rounded-md">
+                                    {PATEK_REFS.filter(r => r.includes(item.ref)).map(match => (
+                                        <div
+                                           key={match}
+                                           className="px-3 py-2 text-center text-[12px] hover:bg-[#F2EFE8] cursor-pointer text-[#4A443F] font-sans transition-colors"
+                                           onMouseDown={(e) => {
+                                               e.preventDefault(); // onBlur 방지
+                                               updateInquiryItem(item.id, 'ref', match);
+                                               setFocusedRefIndex(null);
+                                           }}
+                                        >
+                                           {match}
+                                        </div>
+                                    ))}
+                                    {PATEK_REFS.filter(r => r.includes(item.ref)).length === 0 && (
+                                        <div className="px-3 py-2 text-center text-[11px] text-[#A8A29D]">검색 결과 없음</div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        <input type="text" value={item.proposedDate} onChange={(e) => updateInquiryItem(item.id, 'proposedDate', e.target.value)} disabled={item.isCompleted} placeholder="제시일" className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" />
+                        <input type="text" value={item.note} onChange={(e) => updateInquiryItem(item.id, 'note', e.target.value)} disabled={item.isCompleted} placeholder="비고" className="w-full bg-transparent text-center py-3 outline-none border-l border-[#F2EFE8]" />
+                        <div className="border-l border-[#F2EFE8] h-full flex items-center justify-center">
+                           <button onClick={() => confirmDeleteInquiryItem(item.id)} disabled={item.isCompleted} className="text-[#DCD6CC] hover:text-[#A06C6C] transition-colors"><Trash2 size={16} /></button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <button onClick={addInquiryItem} className="w-full py-3 bg-[#6B5A47] hover:bg-[#5A4B3A] text-white flex items-center justify-center gap-2 transition-colors"><Plus size={16} /> <span className="font-sans text-sm tracking-wide">추가하기</span></button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const renderAlbumModal = () => {
+        if (!isAlbumModalOpen || !albumForm) return null;
+
+        return (
+          <div className="absolute inset-0 bg-[#FCFBF9] z-[100] flex flex-col font-sans animate-in slide-in-from-bottom-5">
+            <div className="flex justify-between items-center px-5 pt-8 pb-4 bg-[#FCFBF9] sticky top-0 z-20 shrink-0">
+              <button onClick={() => setIsAlbumModalOpen(false)} className="text-[#8A847E] text-[15px] hover:text-[#4A443F] py-2">취소</button>
+              <a href="https://www.patek.com/en" target="_blank" rel="noopener noreferrer" className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center top-6">
+                 <img src="./logo.png" alt="Logo" className="w-12 h-12 object-contain" />
+                 <span className="font-serif text-[18px] text-[#3A3532] -mt-1">{albumForm.id ? 'Edit Photo' : 'Upload Photo'}</span>
+              </a>
+              <button onClick={handleSaveAlbum} className="text-[#8B7355] text-[15px] font-medium hover:text-[#6B5335] py-2">완료</button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-5 pb-8 mt-8 no-scrollbar">
+              <input type="file" multiple={!albumForm.id} accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
+              
+              <div className="flex overflow-x-auto gap-3 no-scrollbar mb-6 pb-2 px-1">
+                {albumForm.files && albumForm.files.length > 0 ? (
+                  albumForm.files.map((file, idx) => {
+                    const url = URL.createObjectURL(file);
+                    return (
+                      <div key={idx} className="relative w-28 h-28 shrink-0 rounded-[14px] overflow-hidden shadow-sm border border-[#E8E4DB]">
+                        <img src={url} className="w-full h-full object-cover" alt="preview" />
+                        <button onClick={(e) => { e.stopPropagation(); removeFile(idx); }} className="absolute top-1.5 right-1.5 bg-black/60 text-white rounded-full p-1"><X size={14} /></button>
+                      </div>
+                    );
+                  })
+                ) : albumForm.id ? (
+                  <div className="relative w-full h-[180px] shrink-0 rounded-[14px] overflow-hidden shadow-sm border border-[#E8E4DB]">
+                     <img src={albumForm.imageUrl} className="h-full w-full object-contain bg-[#FDFBF7]" alt="preview" />
+                  </div>
+                ) : null}
+                
+                {(!albumForm.id && (!albumForm.files || albumForm.files.length < 10)) && (
+                  <div 
+                    onClick={() => fileInputRef.current?.click()} 
+                    className={`shrink-0 border-[1.5px] border-dashed border-[#C2BDB5] rounded-[14px] flex flex-col items-center justify-center cursor-pointer hover:bg-[#FDFBF7] transition-colors ${albumForm.files && albumForm.files.length > 0 ? 'w-28 h-28' : 'w-full h-[180px]'}`}
+                  >
+                    <CameraIcon size={albumForm.files && albumForm.files.length > 0 ? 28 : 44} className="text-[#8B7355] mb-2" strokeWidth={1.5} />
+                    <p className="text-[#8A847E] font-sans text-[12px] text-center">추가</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2 mb-6 justify-center">
+                {['전체', '착용샷', '실물', '기타'].map(cat => (
+                   <button key={cat} onClick={() => setAlbumForm({...albumForm, category: cat})} className={`flex-1 py-2.5 rounded-[8px] text-[13px] font-sans whitespace-nowrap transition-colors border shadow-sm ${albumForm.category === cat ? 'bg-[#8B7355] text-white border-[#8B7355] font-medium' : 'bg-white text-[#8A847E] border-[#E8E4DB]'}`}>
+                     {cat}
+                   </button>
+                ))}
+              </div>
+
+              <div className="bg-white border border-[#E8E4DB] rounded-[14px] p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] mb-8">
+                <div className="flex flex-col py-3 border-b border-[#F2EFE8]">
+                  <span className="text-[13px] text-[#2C2724] font-medium mb-1.5 ml-1">사진명</span>
+                  <input type="text" value={albumForm.title} onChange={(e) => setAlbumForm({...albumForm, title: e.target.value})} className="bg-transparent outline-none text-[#4A443F] w-full text-sm px-1 py-1" placeholder="제목을 입력하세요" />
+                </div>
+                <div className="flex flex-col py-3 border-b border-[#F2EFE8]">
+                  <span className="text-[13px] text-[#2C2724] font-medium mb-1.5 ml-1">REF.</span>
+                  <input type="text" value={albumForm.ref} onChange={(e) => setAlbumForm({...albumForm, ref: e.target.value})} className="bg-transparent outline-none text-[#4A443F] w-full text-sm px-1 py-1" placeholder="레퍼런스 넘버 입력" />
+                </div>
+                <div className="flex flex-col pt-3 pb-1">
+                  <span className="text-[13px] text-[#2C2724] font-medium mb-2 ml-1">메모</span>
+                  <textarea value={albumForm.memo} onChange={(e) => setAlbumForm({...albumForm, memo: e.target.value})} className="bg-transparent outline-none text-[#4A443F] w-full text-sm resize-none h-[70px] px-1" placeholder="메모를 입력하세요"></textarea>
+                </div>
+              </div>
+              
+              {albumForm.id && (
+                <button onClick={handleDeleteAlbum} className="w-full py-4 mt-2 mb-8 bg-white border border-[#E8D8D8] text-[#A06C6C] rounded-[14px] font-serif text-sm tracking-widest hover:bg-[#FFF5F5] transition-colors shadow-sm">
+                  이 사진 삭제하기
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      };
+
+      const renderTaskModal = () => {
+        if (!isTaskModalOpen || !taskForm) return null;
+        const isExisting = tasks.some(t => t.id === taskForm.id);
+
+        const handleSaveTask = async () => {
+          if (!taskForm.title.trim()) { setAlertMessage("업무 내용을 입력해주세요."); return; }
+          const payload = { ...taskForm };
+          const targetId = payload.id;
+          delete payload.id; 
+          
+          if (user.uid !== 'local-test-user') {
+             if (isExisting && targetId) await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'tasks', targetId), payload);
+             else await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'tasks'), { ...payload, isCompleted: false, isStarred: false });
+          }
+          setIsTaskModalOpen(false); setTaskForm(null);
+        };
+
+        const handleDeleteTask = async () => { 
+           if (user.uid !== 'local-test-user') await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'tasks', taskForm.id));
+           setIsTaskModalOpen(false); setTaskForm(null); 
+        };
+
+        return (
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm z-[100] flex flex-col justify-end">
+            <div className="bg-[#FCFBF9] relative z-[101] rounded-t-3xl p-7 w-full animate-in slide-in-from-bottom-full duration-300 shadow-[0_-15px_40px_rgba(0,0,0,0.15)] border-t border-[#E8E4DB] max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-7">
+                <h3 className="text-xl font-serif tracking-widest text-[#3A3532]">{isExisting ? '업무 수정' : '새로운 업무'}</h3>
+                <button onClick={() => setIsTaskModalOpen(false)} className="p-2 rounded-full hover:bg-[#F2EFE8] transition-colors"><X size={22} className="text-[#8A847E]" strokeWidth={1.5} /></button>
+              </div>
+              <div className="space-y-7">
+                <div>
+                  <label className="block text-[11px] font-medium tracking-widest text-[#8A847E] mb-2 uppercase font-sans">Date</label>
+                  <input type="date" value={taskForm.date} onChange={(e) => setTaskForm({...taskForm, date: e.target.value})} className="w-full bg-transparent border-b border-[#DCD6CC] py-2 text-[#4A443F] focus:border-[#8B7355] outline-none transition-all font-serif text-sm" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium tracking-widest text-[#8A847E] mb-3 uppercase font-sans">Category</label>
+                  <div className="flex gap-2">
+                    {TASK_CATEGORIES.map(cat => (
+                      <button key={cat.id} onClick={() => setTaskForm({...taskForm, category: cat.label})} className={`px-4 py-2 rounded-[6px] text-[12px] font-sans transition-all ${taskForm.category === cat.label ? `${cat.badgeClass} font-bold shadow-sm` : 'bg-white text-[#8A847E] border border-[#E8E4DB] hover:bg-[#F2EFE8]'}`}>{cat.label}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium tracking-widest text-[#8A847E] mb-2 uppercase font-sans">Title</label>
+                  <input type="text" placeholder="업무 내용을 입력하세요" value={taskForm.title} onChange={(e) => setTaskForm({...taskForm, title: e.target.value})} className="w-full bg-transparent border-b border-[#DCD6CC] py-2 text-[#4A443F] placeholder-[#C2BDB5] focus:border-[#8B7355] outline-none transition-all font-sans text-sm font-medium" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium tracking-widest text-[#8A847E] mb-2 uppercase font-sans">Memo</label>
+                  <textarea rows="3" placeholder="상세 내용을 입력하세요" value={taskForm.memo} onChange={(e) => setTaskForm({...taskForm, memo: e.target.value})} className="w-full bg-white border border-[#E8E4DB] rounded-sm shadow-sm p-4 text-[#4A443F] placeholder-[#C2BDB5] focus:ring-1 focus:ring-[#8B7355] focus:border-[#8B7355] outline-none transition-all resize-none text-sm font-serif leading-relaxed"></textarea>
+                </div>
+                {isExisting ? (
+                  <div className="flex gap-3 w-full mt-2">
+                    <button onClick={handleSaveTask} className="flex-1 bg-[#3A3532] hover:bg-[#2A2522] text-[#F3EFE8] font-serif tracking-widest py-4 rounded-sm transition-colors shadow-lg text-sm border border-[#2A2522]">수정 완료</button>
+                    <button onClick={handleDeleteTask} className="flex-1 bg-white hover:bg-[#FFF5F5] text-[#A06C6C] font-serif tracking-widest py-4 rounded-sm transition-colors border border-[#E8D8D8] text-sm shadow-sm">삭제</button>
+                  </div>
+                ) : (
+                  <button onClick={handleSaveTask} className="w-full bg-[#3A3532] hover:bg-[#2A2522] text-[#F3EFE8] font-serif tracking-widest py-4 rounded-sm mt-2 transition-colors shadow-lg text-sm border border-[#2A2522]">저장하기</button>
+                )}
               </div>
             </div>
           </div>
