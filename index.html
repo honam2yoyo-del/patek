@@ -237,6 +237,8 @@
       const [activeTab, setActiveTab] = useState('calendar'); 
       const [alertMessage, setAlertMessage] = useState(''); 
       const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null });
+      const [linkNotFoundDialog, setLinkNotFoundDialog] = useState({ isOpen: false, type: '', data: null });
+      
       const fileInputRef = useRef(null);
       const csvFileInputRef = useRef(null);
       
@@ -284,6 +286,7 @@
       
       const [focusedRefIndex, setFocusedRefIndex] = useState(null);
       const [newRefInput, setNewRefInput] = useState(''); // Settings 탭에서 사용할 새 REF 입력 상태
+      const [globalRefSearchQuery, setGlobalRefSearchQuery] = useState('');
 
       useEffect(() => {
         if (!auth) return;
@@ -707,7 +710,7 @@
         try {
             await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'globals', 'refList'), { refs: updatedRefs });
             setNewRefInput('');
-            setAlertMessage("REF가 공용 데이터베이스에 추가되었습니다.");
+            setAlertMessage("REF가 데이터베이스에 추가되었습니다.");
         } catch(e) {
             setAlertMessage("REF 저장에 실패했습니다.");
         }
@@ -731,7 +734,64 @@
         });
       };
 
+      const renderLinkNotFoundDialog = () => {
+        if (!linkNotFoundDialog.isOpen) return null;
+        
+        const handleRegister = () => {
+           if (linkNotFoundDialog.type === 'TO_WISHLIST') {
+               const todayFormatted = new Date().toISOString().split('T')[0].replace(/-/g, '.');
+               setInquiryForm({
+                  id: '', date: todayFormatted, type: '신규',
+                  customerName: linkNotFoundDialog.data.name || '',
+                  birthDate: linkNotFoundDialog.data.birthDate || '',
+                  customerPhone: linkNotFoundDialog.data.phone || '',
+                  job: linkNotFoundDialog.data.job || '',
+                  notes: linkNotFoundDialog.data.notes || '',
+                  memo: '', items: []
+               });
+               setIsCustomerModalOpen(false);
+               setIsInquiryModalOpen(true);
+               setActiveTab('inquiries');
+           } else if (linkNotFoundDialog.type === 'TO_CUSTOMER') {
+               setCustomerForm({
+                  id: '',
+                  name: linkNotFoundDialog.data.customerName || '',
+                  birthDate: linkNotFoundDialog.data.birthDate || '',
+                  phone: linkNotFoundDialog.data.customerPhone || '',
+                  job: linkNotFoundDialog.data.job || '',
+                  notes: linkNotFoundDialog.data.notes || '',
+                  purchases: []
+               });
+               setIsInquiryModalOpen(false);
+               setIsCustomerModalOpen(true);
+               setActiveTab('customer');
+           }
+           setLinkNotFoundDialog({ isOpen: false, type: '', data: null });
+        };
+
+        return (
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-6 animate-in fade-in duration-200" style={{ zIndex: 10000 }}>
+            <div className="bg-[#FCFBF9] rounded-xl p-6 w-full max-w-[280px] shadow-2xl border border-[#E8E4DB] flex flex-col relative z-[111]">
+              <button onClick={() => setLinkNotFoundDialog({isOpen: false, type: '', data: null})} className="absolute top-3 right-3 text-[#C2BDB5] hover:text-[#8A847E] p-1 transition-colors">
+                <X size={20} />
+              </button>
+              <div className="flex flex-col items-center mt-2">
+                  <div className="w-12 h-12 rounded-full bg-[#FDFBF7] border border-[#E8E4DB] flex items-center justify-center mb-4 text-[#8B7355]">
+                    <Info size={24} />
+                  </div>
+                  <p className="text-[#3A3532] text-[15px] font-sans text-center font-medium leading-relaxed mb-6 whitespace-pre-wrap">
+                    {linkNotFoundDialog.type === 'TO_WISHLIST' ? '현재 등록된\nWish List가 없습니다.' : '현재 등록된\n구매 내역이 없습니다.'}
+                  </p>
+                  <button onClick={handleRegister} className="w-full bg-[#3A3532] hover:bg-[#2A2522] text-[#F3EFE8] font-serif tracking-widest py-3 rounded-md transition-colors text-[13px] border border-[#2A2522]">등록</button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
       const renderSettingsTab = () => {
+        const filteredRefs = patekRefs.filter(r => r.includes(globalRefSearchQuery.toUpperCase()));
+
         return (
           <div className="flex flex-col h-full bg-[#FCFBF9] font-serif relative" onClick={closeSwipe}>
             <div className="flex flex-col items-center pt-[calc(env(safe-area-inset-top)+16px)] pb-4 relative z-20 shrink-0 border-b border-[#E8E4DB]">
@@ -743,14 +803,32 @@
 
             <div className="flex-1 overflow-y-auto px-5 py-6 no-scrollbar flex flex-col gap-6">
               
-              {/* REF 공용 데이터베이스 관리 섹션 */}
+              {/* REF 데이터베이스 관리 섹션 */}
               <div className="bg-white border border-[#E8E4DB] rounded-xl p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
                 <div className="flex items-center gap-2 mb-4">
                   <ClipboardList size={20} className="text-[#8B7355]" />
-                  <h3 className="font-serif font-bold text-[#3A3532] text-[15px]">공용 REF. 데이터베이스 관리</h3>
+                  <h3 className="font-serif font-bold text-[#3A3532] text-[15px]">REF. 데이터베이스 관리</h3>
                 </div>
                 <p className="text-[12px] text-[#8A847E] font-sans mb-4">이곳에서 추가/삭제된 REF 목록은 앱을 사용하는 모든 사용자에게 동일하게 반영됩니다.</p>
                 
+                <div className="flex gap-2 mb-3">
+                  <div className="flex-1 relative">
+                     <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C2BDB5]"/>
+                     <input 
+                       type="text" 
+                       value={globalRefSearchQuery} 
+                       onChange={(e) => setGlobalRefSearchQuery(e.target.value)} 
+                       placeholder="REF. 리스트 검색..." 
+                       className="w-full border border-[#E8E4DB] rounded-[6px] pl-9 pr-8 py-2 text-[13px] outline-none font-sans bg-[#FCFBF9] placeholder-[#C2BDB5]" 
+                     />
+                     {globalRefSearchQuery && (
+                        <button onClick={() => setGlobalRefSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#C2BDB5] hover:text-[#8A847E]">
+                           <X size={14}/>
+                        </button>
+                     )}
+                  </div>
+                </div>
+
                 <div className="flex gap-2 mb-4">
                   <input 
                     type="text" 
@@ -765,7 +843,7 @@
                 </div>
 
                 <div className="border border-[#F2EFE8] rounded-[6px] max-h-[250px] overflow-y-auto no-scrollbar bg-[#FDFBF7]">
-                  {patekRefs.map((refItem) => (
+                  {filteredRefs.map((refItem) => (
                     <div key={refItem} className="flex justify-between items-center px-4 py-2.5 border-b border-[#F2EFE8] last:border-b-0 hover:bg-white transition-colors">
                       <span className="font-sans text-[13px] text-[#4A443F]">{refItem}</span>
                       <button onClick={() => handleDeleteGlobalRef(refItem)} className="text-[#DCD6CC] hover:text-[#A06C6C] transition-colors p-1">
@@ -773,8 +851,8 @@
                       </button>
                     </div>
                   ))}
-                  {patekRefs.length === 0 && (
-                     <div className="px-4 py-6 text-center text-[12px] text-[#A8A29D]">등록된 REF가 없습니다.</div>
+                  {filteredRefs.length === 0 && (
+                     <div className="px-4 py-6 text-center text-[12px] text-[#A8A29D]">결과가 없습니다.</div>
                   )}
                 </div>
               </div>
@@ -1009,32 +1087,32 @@
               </a>
               <h2 className="text-3xl font-serif text-[#3A3532] tracking-wider mb-5">Customer List</h2>
               
-              <div className="w-full px-5 flex gap-2 relative">
-                <div className="flex-1 bg-white border border-[#E8E4DB] rounded-[6px] px-3 py-3 flex items-center shadow-sm relative">
-                  <Search size={20} className="text-[#8A847E] mr-2 shrink-0" />
-                  <input type="text" placeholder="고객명 또는 REF 검색" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="flex-1 bg-transparent outline-none font-sans text-sm text-[#4A443F] placeholder-[#C2BDB5] pr-6" />
+              <div className="w-full px-4 flex gap-2 relative">
+                <div className="flex-1 min-w-0 bg-white border border-[#E8E4DB] rounded-[6px] px-3 py-2.5 flex items-center shadow-sm relative">
+                  <Search size={18} className="text-[#8A847E] mr-2 shrink-0" />
+                  <input type="text" placeholder="고객명 또는 REF 검색" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="flex-1 min-w-0 bg-transparent outline-none font-sans text-[13px] text-[#4A443F] placeholder-[#C2BDB5] pr-6" />
                   {searchQuery && (
-                    <button onClick={() => setSearchQuery('')} className="absolute right-3 text-[#C2BDB5] hover:text-[#8A847E] transition-colors p-1">
+                    <button onClick={() => setSearchQuery('')} className="absolute right-2 text-[#C2BDB5] hover:text-[#8A847E] transition-colors p-1">
                       <X size={16} />
                     </button>
                   )}
                 </div>
                 
                 {/* CSV 업로드 버튼 */}
-                <button onClick={() => csvFileInputRef.current.click()} className="bg-white border border-[#E8E4DB] rounded-[6px] px-3.5 py-3 shadow-sm hover:bg-[#F2EFE8] transition-colors flex items-center justify-center text-[#4A443F]" title="CSV 엑셀 일괄 업로드">
+                <button onClick={() => csvFileInputRef.current.click()} className="bg-white border border-[#E8E4DB] rounded-[6px] w-[42px] h-[42px] shadow-sm hover:bg-[#F2EFE8] transition-colors flex items-center justify-center text-[#4A443F] shrink-0" title="CSV 엑셀 일괄 업로드">
                   <UploadCloud size={20} />
                 </button>
 
                 {/* 다중 선택 모드 토글 버튼 */}
-                <button onClick={() => { setIsCustomerSelectMode(!isCustomerSelectMode); setSelectedCustomerIds([]); }} className={`border rounded-[6px] px-3.5 py-3 shadow-sm transition-colors flex items-center justify-center ${isCustomerSelectMode ? 'bg-[#8B7355] text-white border-[#8B7355]' : 'bg-white text-[#4A443F] border-[#E8E4DB] hover:bg-[#F2EFE8]'}`} title="멀티 선택 모드">
+                <button onClick={() => { setIsCustomerSelectMode(!isCustomerSelectMode); setSelectedCustomerIds([]); }} className={`border rounded-[6px] w-[42px] h-[42px] shadow-sm transition-colors flex items-center justify-center shrink-0 ${isCustomerSelectMode ? 'bg-[#8B7355] text-white border-[#8B7355]' : 'bg-white text-[#4A443F] border-[#E8E4DB] hover:bg-[#F2EFE8]'}`} title="멀티 선택 모드">
                   <ListChecks size={20} />
                 </button>
 
-                <button onClick={() => setIsFilterOpen(!isFilterOpen)} className="bg-white border border-[#E8E4DB] rounded-[6px] px-3.5 py-3 shadow-sm hover:bg-[#F2EFE8] transition-colors flex items-center justify-center text-[#4A443F]">
+                <button onClick={() => setIsFilterOpen(!isFilterOpen)} className="bg-white border border-[#E8E4DB] rounded-[6px] w-[42px] h-[42px] shadow-sm hover:bg-[#F2EFE8] transition-colors flex items-center justify-center text-[#4A443F] shrink-0">
                   <Filter size={20} />
                 </button>
                 {isFilterOpen && (
-                  <div className="absolute right-5 top-[56px] w-48 bg-white border border-[#E8E4DB] rounded-[6px] shadow-lg z-30 font-sans text-sm overflow-hidden animate-in fade-in slide-in-from-top-2">
+                  <div className="absolute right-4 top-[50px] w-48 bg-white border border-[#E8E4DB] rounded-[6px] shadow-lg z-30 font-sans text-sm overflow-hidden animate-in fade-in slide-in-from-top-2">
                     <div className="px-4 py-2 bg-[#F2EFE8] text-[#8A847E] font-medium text-[11px] uppercase tracking-widest">정렬 기준</div>
                     <button onClick={() => { setSortOrder('amount_desc'); setIsFilterOpen(false); }} className={`w-full text-left px-4 py-3 hover:bg-[#FDFBF7] ${sortOrder === 'amount_desc' ? 'font-bold text-[#8B7355]' : 'text-[#4A443F]'}`}>금액 높은 순</button>
                     <button onClick={() => { setSortOrder('amount_asc'); setIsFilterOpen(false); }} className={`w-full text-left px-4 py-3 hover:bg-[#FDFBF7] border-t border-[#F2EFE8] ${sortOrder === 'amount_asc' ? 'font-bold text-[#8B7355]' : 'text-[#4A443F]'}`}>금액 낮은 순</button>
@@ -1044,7 +1122,7 @@
                 )}
               </div>
 
-              <div className="w-full px-5 mt-4 flex gap-2 overflow-x-auto no-scrollbar pb-1" onTouchStart={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()}>
+              <div className="w-full px-4 mt-4 flex gap-2 overflow-x-auto no-scrollbar pb-1" onTouchStart={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()}>
                 {['ALL', 'WATCH', 'STRAP', 'OTHERS'].map(cat => (
                    <button key={cat} onClick={() => setCustomerFilter(cat)} className={`flex-1 py-2 rounded-lg text-[13px] font-sans whitespace-nowrap transition-colors border shadow-sm ${customerFilter === cat ? 'bg-[#8B7355] text-white border-[#8B7355] font-medium' : 'bg-white text-[#8A847E] border-[#E8E4DB]'}`}>
                      {cat}
@@ -1178,21 +1256,21 @@
               </a>
               <h2 className="text-3xl font-serif text-[#3A3532] tracking-wider mb-5">Wish List</h2>
               
-              <div className="w-full px-5 flex gap-2 relative">
-                <div className="flex-1 bg-white border border-[#E8E4DB] rounded-[6px] px-3 py-3 flex items-center shadow-sm relative">
-                  <Search size={20} className="text-[#8A847E] mr-2 shrink-0" />
-                  <input type="text" placeholder="고객명 또는 REF 검색" value={inquirySearchQuery} onChange={(e) => setInquirySearchQuery(e.target.value)} className="flex-1 bg-transparent outline-none font-sans text-sm text-[#4A443F] placeholder-[#C2BDB5] pr-6" />
+              <div className="w-full px-4 flex gap-2 relative">
+                <div className="flex-1 min-w-0 bg-white border border-[#E8E4DB] rounded-[6px] px-3 py-2.5 flex items-center shadow-sm relative">
+                  <Search size={18} className="text-[#8A847E] mr-2 shrink-0" />
+                  <input type="text" placeholder="고객명 또는 REF 검색" value={inquirySearchQuery} onChange={(e) => setInquirySearchQuery(e.target.value)} className="flex-1 min-w-0 bg-transparent outline-none font-sans text-[13px] text-[#4A443F] placeholder-[#C2BDB5] pr-6" />
                   {inquirySearchQuery && (
-                    <button onClick={() => setInquirySearchQuery('')} className="absolute right-3 text-[#C2BDB5] hover:text-[#8A847E] transition-colors p-1">
+                    <button onClick={() => setInquirySearchQuery('')} className="absolute right-2 text-[#C2BDB5] hover:text-[#8A847E] transition-colors p-1">
                       <X size={16} />
                     </button>
                   )}
                 </div>
-                <button onClick={() => setIsInquiryFilterOpen(!isInquiryFilterOpen)} className="bg-white border border-[#E8E4DB] rounded-[6px] px-4 py-3 shadow-sm hover:bg-[#F2EFE8] transition-colors flex items-center justify-center text-[#4A443F]">
+                <button onClick={() => setIsInquiryFilterOpen(!isInquiryFilterOpen)} className="bg-white border border-[#E8E4DB] rounded-[6px] w-[42px] h-[42px] shadow-sm hover:bg-[#F2EFE8] transition-colors flex items-center justify-center text-[#4A443F] shrink-0">
                   <Filter size={20} />
                 </button>
                 {isInquiryFilterOpen && (
-                  <div className="absolute right-5 top-[56px] w-48 bg-white border border-[#E8E4DB] rounded-[6px] shadow-lg z-30 font-sans text-sm overflow-hidden animate-in fade-in slide-in-from-top-2">
+                  <div className="absolute right-4 top-[50px] w-48 bg-white border border-[#E8E4DB] rounded-[6px] shadow-lg z-30 font-sans text-sm overflow-hidden animate-in fade-in slide-in-from-top-2">
                     <div className="px-4 py-2 bg-[#F2EFE8] text-[#8A847E] font-medium text-[11px] uppercase tracking-widest">정렬/필터</div>
                     <button onClick={() => { setInquirySortOrder('date_desc'); setIsInquiryFilterOpen(false); }} className={`w-full text-left px-4 py-3 hover:bg-[#FDFBF7] ${inquirySortOrder === 'date_desc' ? 'font-bold text-[#8B7355]' : 'text-[#4A443F]'}`}>날짜순</button>
                     <button onClick={() => { setInquirySortOrder('name_asc'); setIsInquiryFilterOpen(false); }} className={`w-full text-left px-4 py-3 hover:bg-[#FDFBF7] border-t border-[#F2EFE8] ${inquirySortOrder === 'name_asc' ? 'font-bold text-[#8B7355]' : 'text-[#4A443F]'}`}>이름순</button>
@@ -1286,22 +1364,22 @@
               </a>
               <h2 className="text-3xl font-serif text-[#3A3532] tracking-wider mb-5">Album</h2>
               
-              <div className="w-full px-5 flex gap-2 relative">
-                <div className="flex-1 bg-white border border-[#E8E4DB] rounded-[8px] px-3 py-3 flex items-center shadow-sm relative">
-                  <Search size={20} className="text-[#8A847E] mr-2 shrink-0" />
-                  <input type="text" placeholder="사진명 또는 REF 검색" value={albumSearchQuery} onChange={(e) => setAlbumSearchQuery(e.target.value)} className="flex-1 bg-transparent outline-none font-sans text-sm text-[#4A443F] placeholder-[#C2BDB5] pr-6" />
+              <div className="w-full px-4 flex gap-2 relative">
+                <div className="flex-1 min-w-0 bg-white border border-[#E8E4DB] rounded-[8px] px-3 py-2.5 flex items-center shadow-sm relative">
+                  <Search size={18} className="text-[#8A847E] mr-2 shrink-0" />
+                  <input type="text" placeholder="사진명 또는 REF 검색" value={albumSearchQuery} onChange={(e) => setAlbumSearchQuery(e.target.value)} className="flex-1 min-w-0 bg-transparent outline-none font-sans text-[13px] text-[#4A443F] placeholder-[#C2BDB5] pr-6" />
                   {albumSearchQuery && (
-                    <button onClick={() => setAlbumSearchQuery('')} className="absolute right-3 text-[#C2BDB5] hover:text-[#8A847E] transition-colors p-1">
+                    <button onClick={() => setAlbumSearchQuery('')} className="absolute right-2 text-[#C2BDB5] hover:text-[#8A847E] transition-colors p-1">
                       <X size={16} />
                     </button>
                   )}
                 </div>
-                <button className="bg-white border border-[#E8E4DB] rounded-[8px] px-4 py-3 shadow-sm flex items-center justify-center text-[#4A443F] hover:bg-[#F2EFE8] transition-colors">
+                <button className="bg-white border border-[#E8E4DB] rounded-[8px] w-[42px] h-[42px] shadow-sm flex items-center justify-center text-[#4A443F] hover:bg-[#F2EFE8] transition-colors shrink-0">
                   <SlidersHorizontal size={20} />
                 </button>
               </div>
 
-              <div className="w-full px-5 mt-4 flex gap-2 overflow-x-auto no-scrollbar pb-1" onTouchStart={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()}>
+              <div className="w-full px-4 mt-4 flex gap-2 overflow-x-auto no-scrollbar pb-1" onTouchStart={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()}>
                 {['전체', '착용샷', '실물', '기타'].map(cat => (
                    <button key={cat} onClick={() => setAlbumFilter(cat)} className={`flex-1 py-2 rounded-lg text-[13px] font-sans whitespace-nowrap transition-colors border shadow-sm ${albumFilter === cat ? 'bg-[#8B7355] text-white border-[#8B7355] font-medium' : 'bg-white text-[#8A847E] border-[#E8E4DB]'}`}>
                      {cat}
@@ -1590,7 +1668,9 @@
           const inquiry = inquiries.find((i) => i.customerName === customerForm.name && i.customerPhone === customerForm.phone);
           if (inquiry) {
             setInquiryForm(JSON.parse(JSON.stringify(inquiry))); setIsInquiryModalOpen(true); setActiveTab('inquiries'); setIsCustomerModalOpen(false);
-          } else { setAlertMessage("현재 등록된\nWish List가 없습니다."); }
+          } else { 
+            setLinkNotFoundDialog({ isOpen: true, type: 'TO_WISHLIST', data: customerForm });
+          }
         };
 
         const totalQty = customerForm.purchases.reduce((sum, p) => sum + (Number(p.qty) || 0), 0);
@@ -1751,7 +1831,9 @@
           const customer = customers.find((c) => c.name === inquiryForm.customerName && c.phone === inquiryForm.customerPhone);
           if (customer) {
             setCustomerForm(JSON.parse(JSON.stringify(customer))); setIsCustomerModalOpen(true); setActiveTab('customer'); setIsInquiryModalOpen(false);
-          } else { setAlertMessage("구매내역이 \n없습니다."); }
+          } else { 
+            setLinkNotFoundDialog({ isOpen: true, type: 'TO_CUSTOMER', data: inquiryForm });
+          }
         };
 
         const sortedItems = [...inquiryForm.items].sort((a, b) => (a.isCompleted === b.isCompleted ? 0 : a.isCompleted ? 1 : -1));
@@ -2135,6 +2217,7 @@
             {renderInquiryModal()}
             {renderTaskModal()}
             {renderAlbumModal()}
+            {renderLinkNotFoundDialog()}
             
             <CustomAlert message={alertMessage} onClose={() => setAlertMessage('')} />
             <CustomConfirm message={confirmDialog.message} onConfirm={confirmDialog.onConfirm} onClose={() => setConfirmDialog({...confirmDialog, isOpen: false})} />
